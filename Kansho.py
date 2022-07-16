@@ -16,6 +16,7 @@ FUNCTIONS:
     Define_Neighbour_Index() - Calculates the index of current markers neighbours
     Define_Neighbour_States() - Calculates the state of current markers neighbours
     Take_Turn() - Sets up a loop to allow players to take turns
+    Go_To() - Allows the player to select a previous turn or 'load' a saved game.
 
 UPDATE RECORD:
 Date          Version     Author         Description
@@ -25,14 +26,15 @@ Date          Version     Author         Description
                                          Prints board images to files
 20/05/2022    v2.0        Pete Sanders   Included some basic front end.   
 24/05/2022    v2.1        Pete Sanders   Re-ordering of code to work better with front end commands.                                      
-                                         
+16/06/2022    v2.3        Pete Sanders   Fixed issues with turn ordering and endgame.
+                                        
 RECOMMENDED FUTURE IMPROVEMENTS:
     Make one neighboured tokens and enclosed areas loops more efficient.
     Mark placed marker as red when players last go to make it easier to know where to place other markers
-    Allow user to input a precice location on the chart, could use a conversion table to do this.
-
+    Allow game saving and sub-directories for saved games.
+    
 Bugs:
-    Go back not working properly
+    
 """
 #%% Import nessessary modules
 import pandas as pd
@@ -43,20 +45,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import *
 from PIL import ImageTk, Image
-
-#%%###########################################################################
-#   1. Print instructions, define initial conditions
-#   2. Define board and scores
-#   3. Make a move:
-#           3.1. Place marker:
-#                   3.111. Determine if this is the players last move.
-#                   3.1.2. If so, allow them to keep placing markers until they are done.
-#           3.2. Place surrounding markers,
-#           3.3. Remove opponents markers.
-#   4. Calculate scores and save board.
-#   5. Determine if the game is over:
-#           5.1. If so calculate the result.
-###############################################################################
+import math
 
 #%% 1. Print instructions, define initial conditions
 global Turn_No
@@ -69,15 +58,15 @@ global P1_Used
 global P2_Used
 global Turn_No
 global Last_Turn_Count
-
+global Opponent
 
 # Print instrustions
 print ('Instructions:', '\n',
        'These will need changing based on the changes made.',)
 
 # Define initial condtions
-Markers_P1 = 10
-Markers_P2 = 10
+Markers_P1 = 123
+Markers_P2 = 123
 Used_P1 = 0
 Used_P2 = 0
 P1_Used = 0
@@ -85,6 +74,7 @@ P2_Used = 0
 Turn_No = 0
 Total_Markers = Markers_P1 + Markers_P2
 Player = 1
+Opponent = 2
 Last_Turn = 0
 Last_Turn_Count = 0
 
@@ -178,6 +168,7 @@ Board_0_data = {'x': [11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,1
                           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,
                           0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,3,3,
                           3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]}
+
 # Set Board_0_data to datframe
 Board_0 = pd.DataFrame(data = Board_0_data)
 This_Turn = Board_0
@@ -261,8 +252,8 @@ def Show_Board():
     plt.xticks(major_ticksx, fontsize=16)
     plt.yticks(major_ticksy, fontsize=16)
     plt.grid(axis = 'both', color = (0.4,0.4,0.4), linewidth = 1.5)        
-    plt.scatter(x_board,y_board, marker = 'H', s = 1300, color = (0.74,0.47,0.34), edgecolor = 'k')
-    plt.scatter(x_3,y_3, marker = 'H', s = 1350, color = 'w')
+    plt.scatter(x_board,y_board, marker = 'H', s = 1300, color = (0.74,0.47,0.34), edgecolor = 'k', linewidth = 1)
+    plt.scatter(x_3,y_3, marker = 'H', s = 1500, color = 'w')
     plt.scatter(x_1,y_1, marker = 'o', s = 500, color = 'w', edgecolor = 'k')
     plt.scatter(x_2,y_2, marker = 'o', s = 500, color = 'k', edgecolor = 'k')
     plt.tight_layout()
@@ -297,8 +288,7 @@ def Show_Board():
     img = ImageTk.PhotoImage(img)
     panel = Label(root, image = img)
     panel.pack_propagate(0)
-    panel.pack(side = "left", fill = tk.BOTH, expand = True)
-
+    panel.pack(side = "bottom", fill = tk.BOTH, expand = True)
     
 #%% Calculate score
 def Calculate_Scores():
@@ -317,7 +307,7 @@ def Calculate_Scores():
     else:
         Scores = pd.read_csv ('Scores_' + str(Turn_No - 1) + '.csv', header = 0)    
  
-# Define scores for this turn based on 'Scores' and current markers used    
+    # Define scores for this turn based on 'Scores' and current markers used    
     These_Scores['InPlay_P1'].loc[0] = This_Turn[This_Turn.Value == 1].sum().loc['Value']
     These_Scores['InPlay_P2'].loc[0] = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
     
@@ -339,32 +329,27 @@ def Save_Scores():
 def Save_Board():
     globals()['Board_{}'.format(Turn_No)] = This_Turn
     globals()['Board_{}'.format(Turn_No)].to_csv('Board_'+str(Turn_No)+'.csv',index=False)
+    
 #%% Player_Check() Check if player 1 or 2 is playing based on turn no. or number of markers
 def Player_Check():
     global Player
     global Opponent
-    global Turn_No
     global Markers_P1
     global Markers_P2
-    global Last_Turn
     
-    if Markers_P1 <= 0:
+    if Markers_P1 <= 0 and Markers_P2 > 0:
         Player = 2
         Opponent = 1
-        print('Black player ...your turn')
-    elif Markers_P2 <= 0:
+    elif Markers_P2 <= 0 and Markers_P1 > 0:
         Player = 1
         Opponent = 2
+    else:
+        pass
+    
+    if Last_Turn == 0 and Player == 1 and Markers_P1 > 0:
         print('White player...your turn')
-    elif Last_Turn == 0:
-        if Turn_No % 2 == 0:
-            Player = 1
-            Opponent = 2
-            print('White player...your turn')
-        else:
-            Player = 2
-            Opponent = 1
-            print('Black player...your turn')   
+    elif Last_Turn == 0 and Player == 2 and Markers_P2 > 0:
+        print('Black player...your turn')
     else:
         pass
         
@@ -462,15 +447,13 @@ def Take_Turn():
     global Neighbour_index
     global Last_Turn_Count
     global Total_Markers
+    global Opponent
     
     # Increase turn number and reset numbers used
     Turn_No = Turn_No + 1
     
-    if Last_Turn == 0:
-        P1_Used = 0
-        P2_Used = 0
-    else:
-        pass
+    P1_Used = 0
+    P2_Used = 0
 
     Calculate_Scores()
     
@@ -495,7 +478,7 @@ def Take_Turn():
     Save_Board()
     Show_Board()
        
-# Step 4, Calculate markers required for go, and fill neighbours
+    # Step 4, Calculate markers required for go, and fill neighbours
     # Rename Place_x and Place_y as lookups to work with Define_Neighbour_Index
     lookup_x = Place_x
     lookup_y = Place_y
@@ -540,7 +523,6 @@ def Take_Turn():
         Show_Board()
         
     # If not then perform last go procedures
-    # Need some method here for remembering what the initial played position was on the first move of the last go.
     elif Req_Markers > Player_Markers:
         Last_Turn_Count = Last_Turn_Count + 1
         
@@ -573,8 +555,6 @@ def Take_Turn():
                     
         Player_Markers = int(These_Scores[str('Markers_P' + str(Player))].loc[0])
                 
-        Turn_No =  Turn_No - 1
-                
        # Req_Markers = Req_Markers - 1
             
         Calculate_Scores()
@@ -595,18 +575,17 @@ def Take_Turn():
         Last_Turn == 0
         Last_Turn_Count == 0
         
-        # Step 5, Search for and remove enclosed areas
-        # Start with opposing player no.
+        # Step 5, Search for and remove enclosed areas, starts with opposing player no.
         # Maybe this could be a seperate function
-        # Need to run this after last go
         No_Rotations = 0
         InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
         InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
             
         # Setup loop to repeat until each piece is assessed
-        while No_Rotations <= max(InPlay_P1,InPlay_P2):        
+        while No_Rotations <= (InPlay_P1 + InPlay_P2):        
             This_Turn_index = 0
-            # Setup loop to run through each row of board
+            
+            # Setup loop to run through each 'row' of board
             while This_Turn_index <= 528:
                 if int(This_Turn['Value'].loc[int(This_Turn_index)]) == int(Opponent):
                     lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
@@ -630,8 +609,7 @@ def Take_Turn():
                     This_Turn_index = This_Turn_index + 1
             
             # Repeat for every board Rotation
-            No_Rotations = No_Rotations + max(1, (max(InPlay_P1,InPlay_P2) - max(This_Turn[This_Turn.Value == 1].sum().loc['Value'], int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2))))
-            InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
+            No_Rotations = No_Rotations + 1
             InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
             
         # Mark all remaining opponent as "0"
@@ -642,10 +620,8 @@ def Take_Turn():
     
         # Repeat for player
         No_Rotations = 0
-        InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
-        InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
             
-        while No_Rotations <= max(InPlay_P1,InPlay_P2):        
+        while No_Rotations <= (InPlay_P1 + InPlay_P2):        
             This_Turn_index = 0
             while This_Turn_index <= 528:
                 if int(This_Turn['Value'].loc[int(This_Turn_index)]) == int(Player):
@@ -671,7 +647,7 @@ def Take_Turn():
                     This_Turn_index = This_Turn_index + 1
             
             # Repeat for every board Rotation
-            No_Rotations = No_Rotations + max(1, (max(InPlay_P1,InPlay_P2) - max(This_Turn[This_Turn.Value == 1].sum().loc['Value'], int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2))))
+            No_Rotations = No_Rotations + 1
             InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
             InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
                     
@@ -739,8 +715,31 @@ def Take_Turn():
     Save_Board()
         
     Total_Markers = Markers_P1 + Markers_P2
-            
-    Player_Check()   
+    
+    Show_Board()
+    
+    # if not a last go then swap player
+    if Last_Turn == 0:
+        Calculate_Scores()
+        Save_Scores()
+        Save_Board()
+        Show_Board()
+        
+        #Swap player
+        if Player == 1 and Opponent == 2:
+            Player = 2
+            Opponent = 1
+        elif Player == 2 and Opponent == 1:
+            Player = 1
+            Opponent = 2
+        else:
+            pass
+        
+        Player_Check()
+    
+    else:
+        pass
+    
     Show_Board()
     
     # Sort out endgame
@@ -801,11 +800,16 @@ def Input():
     
     Pass = 0
     
-    # 1. Check that there is text in input1 and that it has at least one comma.
+    # 1. Check that there is text in input1, that it has at least one comma, and that numbers are either side of the comma.
     if (str(entry1.get()) != '') and (',' in str(entry1.get())):
         coords = list(entry1.get().split(','))
-        Place_x = int(coords[0])
-        Place_y = int(coords[1])
+        Place_x = float(coords[0])
+        Place_y = float(coords[1])
+        
+        # Round down to floor and convert to integer
+        Place_x = int(math.floor(Place_x))
+        Place_y = int(math.floor(Place_y))
+        
         entry1.delete(0, END)
         Pass = Pass + 1
     else:
@@ -813,7 +817,7 @@ def Input():
         
     # 2. Check to see if Place_x and Place_y are integers between -10 and 10
     if (-10 <= Place_x <= 10) and (-10 <= Place_y <= 10):
-        Pass = Pass + 1        
+        Pass = Pass + 1
     else:
         pass
     
@@ -846,39 +850,61 @@ def Input():
         print('Entered co-ordinate is incorrect, please try again')
         
 #%% What the buttons do
-def Go_Back():
+def Go_To():
     global This_Turn
     global Markers_P1
     global Markers_P2
+    global These_Scores
+    global Turn_No
+                   
+    Turn = str(entry2.get())
     
-    to_turn = int(input('To turn: '))
-                
-    Turn_No = int(to_turn)
-              
-    This_Turn = pd.read_csv ('Board_' + str(Turn_No) + '.csv', header = 0) 
-    These_Scores = pd.read_csv ('Scores_' + str(Turn_No) + '.csv', header = 0)    
-    Markers_P1 = int(These_Scores['Markers_P1'].loc[0])
-    Markers_P2 = int(These_Scores['Markers_P2'].loc[0])
-                
+    # The entry requirements are that:
+    # 1. Integers between 1 and 246 must be used.
+    
+    Pass = 0
+    
+    # 1. Check that there is text in input2 and that it is an integer between 1 and 246 incl.
+    if (int(Turn) >= 1) and (int(Turn) <= 246):
+        entry2.delete(0, END)
+        Pass = Pass + 1
+    else:
+        entry2.delete(0, END)
+            
+    # Check to see if all stages passed, if so contunue, if not pass
+    if Pass == 1:
+        Turn_No = int(Turn)
+        This_Turn = pd.read_csv ('Board_' + str(Turn_No) + '.csv', header = 0) 
+        These_Scores = pd.read_csv ('Scores_' + str(Turn_No) + '.csv', header = 0)    
+        Markers_P1 = int(These_Scores['Markers_P1'].loc[0])
+        Markers_P2 = int(These_Scores['Markers_P2'].loc[0])
+
+    else:
+        print('Not a valid turn number, please try again')
+    
     Show_Board()
 
-#%% Create and show board to players
+#%% Create and show board to players  
 Calculate_Scores()
 Player_Check()
 Show_Board()
                
 #%% Some other front end stuff
-                
-# Describes the button and what function it runs
-canvas = tk.Canvas(root, width = 40, height = 30)
-BTT = tk.Button(root, text = 'Take Turn', command = Input, bg='brown',fg='white')
-BGB = tk.Button(root, text = 'Go Back', command = Go_Back, bg='brown',fg='white')
+canvas1 = tk.Canvas(root, width = 450, height = 100)
+BTT = tk.Button(canvas1, text = 'Take Turn', command = Input, bg='brown',fg='white')
+BGB = tk.Button(canvas1, text = 'Go To', command = Go_To, bg='brown',fg='white')
+entry1 = tk.Entry(canvas1)
+entry2 = tk.Entry(canvas1)
 
-BTT.pack(); canvas.pack()
-BGB.pack()
-
-entry1 = tk.Entry (root) 
-canvas.create_window(20, 15, window=entry1)
+canvas1.pack()
+BTT.place(height = 20, width = 100, x = 300, y = 20)
+BGB.place(height = 20, width = 100, x = 300, y = 65)
+entry1.place(height = 20, width = 100, x = 175, y = 20)
+entry2.place(height = 20, width = 100, x = 175, y = 65)
+text1 = canvas1.create_text(170, 27, anchor = "e")
+canvas1.itemconfig(text1, text="Enter co-ordinates here (x,y):")
+text2 = canvas1.create_text(170, 73, anchor = "e")
+canvas1.itemconfig(text2, text="Enter turn number here:")
 
 # No idea what this does but its  important.
 root.mainloop()    
