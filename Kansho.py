@@ -33,7 +33,7 @@ Date          Version     Author          Description
 19/06/2022    v2.6        Pete Sanders    Add 'Working on it...' to Game_Notes after completing a move.
                                           Allowed entry using ENTER key.
 14/07/2022    v2.7        Pete Sanders    Updated front end, changed so that nothing saves to file,
-                                          used 'pickle' to store data locally.
+                                          used pickle to store data locally.
                                         
 RECOMMENDED FUTURE IMPROVEMENTS:
     Make one neighboured tokens and enclosed areas loops more efficient.
@@ -43,8 +43,7 @@ RECOMMENDED FUTURE IMPROVEMENTS:
     Allow entering of location from clicking on board.
     
 Bugs:
-    The exe version either gets picked up by malware (auto-py-to-exe),
-    or closes after entering the first command (pyinstaller).
+
 
 """
 #%% Import nessessary modules
@@ -649,7 +648,7 @@ def Take_Turn():
     
         Neighbours = dict([(1, 'a'), (2, 'b'), (3, 'c'), (4, 'd'), (5, 'e'), (6, 'f')])
             
-        for i in Neighbours:
+        while Neighbour_No <= 6:
             if variables['{}_state'.format(Neighbours[Neighbour_No])] == int(Player):
                 This_Turn['Value'].loc[variables['{}_index'.format(Neighbours[Neighbour_No])]] = int(Player)
 
@@ -662,6 +661,8 @@ def Take_Turn():
                     P1_Used = P1_Used + 1
                 else:
                     P2_Used = P2_Used + 1                    
+    
+            Neighbour_No = Neighbour_No + 1
                 
         Calculate_Scores()
         Save_Scores()
@@ -1121,6 +1122,8 @@ Show_Board()
                
 #%% Some other front end stuff
 
+Calculate_FE_sizes()
+
 def Setup_FE_Features():
     global canvas1
     global canvas2
@@ -1157,7 +1160,6 @@ def Setup_FE_Features():
     entry1.focus()
     entry2.bind('<Return>', lambda x: Go_To ())
 
-Calculate_FE_sizes()
 Setup_FE_Features()
 
 #%% Update_FE()
