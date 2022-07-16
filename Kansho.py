@@ -27,14 +27,20 @@ Date          Version     Author         Description
 20/05/2022    v2.0        Pete Sanders   Included some basic front end.   
 24/05/2022    v2.1        Pete Sanders   Re-ordering of code to work better with front end commands.                                      
 16/06/2022    v2.3        Pete Sanders   Fixed issues with turn ordering and endgame.
+17/06/2022    v2.4        Pete Sanders   Made some improvements.
                                         
 RECOMMENDED FUTURE IMPROVEMENTS:
     Make one neighboured tokens and enclosed areas loops more efficient.
     Mark placed marker as red when players last go to make it easier to know where to place other markers
     Allow game saving and sub-directories for saved games.
-    
+    Add a turn by turn commentary.
+    Include a side pannel for commentary so that the console is not needed.
+    Change board co-ordinates to start at 0,0 in the bottom left corner.    
+
 Bugs:
-    
+    Player not remembered using Go_To(): e.g. if white played turn 3, black would play when go back to t3 is active, needs changing.
+    Issue with endgame if player has more than one go in a row to end.    
+
 """
 #%% Import nessessary modules
 import pandas as pd
@@ -46,6 +52,7 @@ import tkinter as tk
 from tkinter import *
 from PIL import ImageTk, Image
 import math
+import warnings
 
 #%% 1. Print instructions, define initial conditions
 global Turn_No
@@ -60,9 +67,17 @@ global Turn_No
 global Last_Turn_Count
 global Opponent
 
+warnings.filterwarnings('ignore')
+
 # Print instrustions
 print ('Instructions:', '\n',
-       'These will need changing based on the changes made.',)
+       'The input boxes will be used to input your moves and commands.', '\n',
+       'When making a move enter the x and y co-ordinates for the move you want to make in the upper box.', '\n',
+       "Then click on the 'Take Turn' button", '\n',
+       'Co-ordinates can be entered using a decimal point e.g. (1 , 1.5)', '\n',
+       "If you want to go back to a particular move or 'load a saved game' enter the number of the turn into the bottom box.", '\n',
+       "Then click on the 'Go To' button and the game can contunue from that move", '\n',
+       'Have fun!', '\n',)
 
 # Define initial condtions
 Markers_P1 = 123
@@ -187,11 +202,9 @@ These_Scores.to_csv('Scores_'+str(Turn_No) +'.csv',index=False)
 # Assignes some function within tk to root
 root = tk.Tk()
 root.title('Kansho')
-root.geometry('500x600')
-root.resizable(0,0)
+root.geometry('666x800')
 
-img = ImageTk.PhotoImage(Image.open('Kansho - Logo.jpg'))
-panel = Label(root, image = img)
+panel = Label(root)
 panel.pack_propagate(0)
 panel.pack(side = "left", fill = "both", expand = 1)
 
@@ -220,14 +233,17 @@ def Remove_old_files():
             pass
 
         file_no = file_no + 1
-        
-#Remove_old_files()       
 
 #%% Show Board
 def Show_Board():
     global panel
     global img
     global Player
+    global height
+    global imgsize
+    
+    # turn interactive plotting off
+    plt.ioff()
     
     plt.figure(figsize=(10,10))
 
@@ -277,14 +293,19 @@ def Show_Board():
     plt.text(0, 0, 'Turn' + '\n' + str("%.0f" % float(Turn_No)), fontsize=18, verticalalignment='center', horizontalalignment='center', bbox=props)
     
     
-# Pause chart to display during loops    
+    # Pause chart to display during loops    
     plt.savefig('Turn_{}'.format(Turn_No) +'.jpg')
+    plt.close()
     plt.pause(0.1)
+    
+    root.update()
+    height = root.winfo_height()
+    imgsize = int(math.floor(height * (5/6)))
     
     panel.destroy()
     
     img = Image.open('Turn_{}'.format(Turn_No) +'.jpg')
-    img = img.resize((450, 450), Image.ANTIALIAS)
+    img = img.resize((imgsize, imgsize), Image.ANTIALIAS)
     img = ImageTk.PhotoImage(img)
     panel = Label(root, image = img)
     panel.pack_propagate(0)
@@ -347,9 +368,9 @@ def Player_Check():
         pass
     
     if Last_Turn == 0 and Player == 1 and Markers_P1 > 0:
-        print('White player...your turn')
+        print('White player...your turn','\n',)
     elif Last_Turn == 0 and Player == 2 and Markers_P2 > 0:
-        print('Black player...your turn')
+        print('Black player...your turn','\n',)
     else:
         pass
         
@@ -533,17 +554,17 @@ def Take_Turn():
             Last_Turn = 0
     
         if Player == 2 and Last_Turn_Count == 1:
-            print('Black player, this is your last go, good luck!')
+            print('Black player, this is your last go, good luck!','\n',)
         elif Player == 1 and Last_Turn_Count == 1:
-            print('White player, this is your last go, good luck!')
+            print('White player, this is your last go, good luck!','\n',)
         else:
             pass
                 
         if Player_Markers > 0:
             if Player == 2:
-                print('Black player its still your turn')
+                print('Black player its still your turn','\n',)
             elif Player == 1:
-                print('White player its still your turn')
+                print('White player its still your turn','\n',)
             else:
                 Last_Turn_Count == 0
                     
@@ -653,7 +674,7 @@ def Take_Turn():
                     
         # Mark all remaining player as "0"
         This_Turn['Value'] = np.where((This_Turn.Value == int(Player)), 0, This_Turn.Value)
-                
+        
         # Mark all 4s as player no
         This_Turn['Value'] = np.where((This_Turn.Value == 4), int(Player), This_Turn.Value)
     
@@ -775,7 +796,7 @@ def Take_Turn():
             
         # Print outcome
         if InPlay_P1 == InPlay_P2:
-            print('End of game, A Draw? How did that happen?')
+            print('End of game, A Draw? How did that happen?',)
         else:
             print('End of game, congratulations ' + str(winner) + ', you acheived ' + str(outcome))
             
@@ -847,7 +868,7 @@ def Input():
     elif Pass == 4 and Last_Turn == 1 and ((sum(1 for item in Neighbour_index if item == Place_index)) > 0): 
         Take_Turn()
     else:
-        print('Entered co-ordinate is incorrect, please try again')
+        print('Entered co-ordinate is incorrect, please try again','\n',)
         
 #%% What the buttons do
 def Go_To():
@@ -880,7 +901,7 @@ def Go_To():
         Markers_P2 = int(These_Scores['Markers_P2'].loc[0])
 
     else:
-        print('Not a valid turn number, please try again')
+        print('Not a valid turn number, please try again','\n',)
     
     Show_Board()
 
@@ -890,21 +911,26 @@ Player_Check()
 Show_Board()
                
 #%% Some other front end stuff
-canvas1 = tk.Canvas(root, width = 450, height = 100)
-BTT = tk.Button(canvas1, text = 'Take Turn', command = Input, bg='brown',fg='white')
-BGB = tk.Button(canvas1, text = 'Go To', command = Go_To, bg='brown',fg='white')
-entry1 = tk.Entry(canvas1)
-entry2 = tk.Entry(canvas1)
+canwidth = imgsize
+canheight = int(math.floor(height * (1/6)))
+butheight = canheight / 5
+fontsize = int(math.floor(butheight * 0.5))
+
+canvas1 = tk.Canvas(root, width = canwidth, height = canheight)
+BTT = tk.Button(canvas1, text = 'Take Turn', font = ('Arial', fontsize), command = Input, bg='brown',fg='white')
+BGB = tk.Button(canvas1, text = 'Go To', font = ('Arial', fontsize), command = Go_To, bg='brown',fg='white')
+entry1 = tk.Entry(canvas1, font = ('Arial', fontsize))
+entry2 = tk.Entry(canvas1, font = ('Arial', fontsize))
 
 canvas1.pack()
-BTT.place(height = 20, width = 100, x = 300, y = 20)
-BGB.place(height = 20, width = 100, x = 300, y = 65)
-entry1.place(height = 20, width = 100, x = 175, y = 20)
-entry2.place(height = 20, width = 100, x = 175, y = 65)
-text1 = canvas1.create_text(170, 27, anchor = "e")
-canvas1.itemconfig(text1, text="Enter co-ordinates here (x,y):")
-text2 = canvas1.create_text(170, 73, anchor = "e")
-canvas1.itemconfig(text2, text="Enter turn number here:")
+BTT.place(height = butheight, width = 100, x = (canwidth / 2) + 70, y = butheight)
+BGB.place(height = butheight, width = 100, x = (canwidth / 2) + 70, y = butheight * 3)
+entry1.place(height = butheight, width = 100, x = (canwidth / 2) - 50, y = butheight)
+entry2.place(height = butheight, width = 100, x = (canwidth / 2) - 50, y = butheight * 3)
+text1 = canvas1.create_text((canwidth / 2) - 60, butheight + (butheight / 2), anchor = "e")
+canvas1.itemconfig(text1, text="Enter co-ordinates here (x,y):", font = ('Arial', fontsize))
+text2 = canvas1.create_text((canwidth / 2) - 60, butheight * 3 + (butheight / 2), anchor = "e")
+canvas1.itemconfig(text2, text="Enter turn number here:", font = ('Arial', fontsize))
 
 # No idea what this does but its  important.
 root.mainloop()    
