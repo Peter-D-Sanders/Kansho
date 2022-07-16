@@ -32,18 +32,15 @@ RECOMMENDED FUTURE IMPROVEMENTS:
     Allow user to input a precice location on the chart, could use a conversion table to do this.
 
 Bugs:
-                       
+    Go back not working properly
 """
 #%% Import nessessary modules
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-from sys import exit
 import os
+import numpy as np
 from pathlib import Path
 import tkinter as tk
-import time
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import *
 from PIL import ImageTk, Image
 
@@ -71,15 +68,16 @@ global Used_P2
 global P1_Used
 global P2_Used
 global Turn_No
-global Last_Turn
+global Last_Turn_Count
+
 
 # Print instrustions
 print ('Instructions:', '\n',
        'These will need changing based on the changes made.',)
 
 # Define initial condtions
-Markers_P1 = 123
-Markers_P2 = 123
+Markers_P1 = 10
+Markers_P2 = 10
 Used_P1 = 0
 Used_P2 = 0
 P1_Used = 0
@@ -88,25 +86,14 @@ Turn_No = 0
 Total_Markers = Markers_P1 + Markers_P2
 Player = 1
 Last_Turn = 0
+Last_Turn_Count = 0
 
 #%%  2. Define board and scores
 # This should be done using code up front, instead of reading a csv file like it is currently.
-
-
-Board_0 = pd.read_csv ('Board_0.csv', header = 0)
-
-Board_0_data = {'x': [11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,
-                      10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,
-                      9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,
-                      8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,
-                      7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
-                      6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
-                      5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
-                      4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-                      3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
-                      2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-                      1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+Board_0_data = {'x': [11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,
+                      8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+                      5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+                      2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
                       -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
                       -2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,
                       -3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,
@@ -118,12 +105,9 @@ Board_0_data = {'x': [11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,1
                       -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,
                       -10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,-10,
                       -11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11,-11],
-                'y': [11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
-                      11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
-                      11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
-                      11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
-                      11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
-                      11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
+                'y': [11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
+                      11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
+                      11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
                       11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
                       11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
                       11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
@@ -164,13 +148,48 @@ Board_0_data = {'x': [11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,1
                               11.5,10.5,9.5,8.5,7.5,6.5,5.5,4.5,3.5,2.5,1.5,0.5,-0.5,-1.5,-2.5,-3.5,-4.5,-5.5,-6.5,-7.5,-8.5,-9.5,-10.5,
                               11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,
                               11.5,10.5,9.5,8.5,7.5,6.5,5.5,4.5,3.5,2.5,1.5,0.5,-0.5,-1.5,-2.5,-3.5,-4.5,-5.5,-6.5,-7.5,-8.5,-9.5,-10.5,],
-                'x,y': [3, 4],
-                'Value': [3, 4]}
+                'x,y': ['11,11','11,10','11,9','11,8','11,7','11,6','11,5','11,4','11,3','11,2','11,1','11,0','11,-1','11,-2','11,-3','11,-4','11,-5','11,-6','11,-7','11,-8','11,-9','11,-10','11,-11',
+                        '10,11','10,10','10,9','10,8','10,7','10,6','10,5','10,4','10,3','10,2','10,1','10,0','10,-1','10,-2','10,-3','10,-4','10,-5','10,-6','10,-7','10,-8','10,-9','10,-10','10,-11',
+                        '9,11','9,10','9,9','9,8','9,7','9,6','9,5','9,4','9,3','9,2','9,1','9,0','9,-1','9,-2','9,-3','9,-4','9,-5','9,-6','9,-7','9,-8','9,-9','9,-10','9,-11',
+                        '8,11','8,10','8,9','8,8','8,7','8,6','8,5','8,4','8,3','8,2','8,1','8,0','8,-1','8,-2','8,-3','8,-4','8,-5','8,-6','8,-7','8,-8','8,-9','8,-10','8,-11',
+                        '7,11','7,10','7,9','7,8','7,7','7,6','7,5','7,4','7,3','7,2','7,1','7,0','7,-1','7,-2','7,-3','7,-4','7,-5','7,-6','7,-7','7,-8','7,-9','7,-10','7,-11',
+                        '6,11','6,10','6,9','6,8','6,7','6,6','6,5','6,4','6,3','6,2','6,1','6,0','6,-1','6,-2','6,-3','6,-4','6,-5','6,-6','6,-7','6,-8','6,-9','6,-10','6,-11',
+                        '5,11','5,10','5,9','5,8','5,7','5,6','5,5','5,4','5,3','5,2','5,1','5,0','5,-1','5,-2','5,-3','5,-4','5,-5','5,-6','5,-7','5,-8','5,-9','5,-10','5,-11',
+                        '4,11','4,10','4,9','4,8','4,7','4,6','4,5','4,4','4,3','4,2','4,1','4,0','4,-1','4,-2','4,-3','4,-4','4,-5','4,-6','4,-7','4,-8','4,-9','4,-10','4,-11',
+                        '3,11','3,10','3,9','3,8','3,7','3,6','3,5','3,4','3,3','3,2','3,1','3,0','3,-1','3,-2','3,-3','3,-4','3,-5','3,-6','3,-7','3,-8','3,-9','3,-10','3,-11',
+                        '2,11','2,10','2,9','2,8','2,7','2,6','2,5','2,4','2,3','2,2','2,1','2,0','2,-1','2,-2','2,-3','2,-4','2,-5','2,-6','2,-7','2,-8','2,-9','2,-10','2,-11',
+                        '1,11','1,10','1,9','1,8','1,7','1,6','1,5','1,4','1,3','1,2','1,1','1,0','1,-1','1,-2','1,-3','1,-4','1,-5','1,-6','1,-7','1,-8','1,-9','1,-10','1,-11',
+                        '0,11','0,10','0,9','0,8','0,7','0,6','0,5','0,4','0,3','0,2','0,1','0,0','0,-1','0,-2','0,-3','0,-4','0,-5','0,-6','0,-7','0,-8','0,-9','0,-10','0,-11',
+                        '-1,11','-1,10','-1,9','-1,8','-1,7','-1,6','-1,5','-1,4','-1,3','-1,2','-1,1','-1,0','-1,-1','-1,-2','-1,-3','-1,-4','-1,-5','-1,-6','-1,-7','-1,-8','-1,-9','-1,-10','-1,-11',
+                        '-2,11','-2,10','-2,9','-2,8','-2,7','-2,6','-2,5','-2,4','-2,3','-2,2','-2,1','-2,0','-2,-1','-2,-2','-2,-3','-2,-4','-2,-5','-2,-6','-2,-7','-2,-8','-2,-9','-2,-10','-2,-11',
+                        '-3,11','-3,10','-3,9','-3,8','-3,7','-3,6','-3,5','-3,4','-3,3','-3,2','-3,1','-3,0','-3,-1','-3,-2','-3,-3','-3,-4','-3,-5','-3,-6','-3,-7','-3,-8','-3,-9','-3,-10','-3,-11',
+                        '-4,11','-4,10','-4,9','-4,8','-4,7','-4,6','-4,5','-4,4','-4,3','-4,2','-4,1','-4,0','-4,-1','-4,-2','-4,-3','-4,-4','-4,-5','-4,-6','-4,-7','-4,-8','-4,-9','-4,-10','-4,-11',
+                        '-5,11','-5,10','-5,9','-5,8','-5,7','-5,6','-5,5','-5,4','-5,3','-5,2','-5,1','-5,0','-5,-1','-5,-2','-5,-3','-5,-4','-5,-5','-5,-6','-5,-7','-5,-8','-5,-9','-5,-10','-5,-11',
+                        '-6,11','-6,10','-6,9','-6,8','-6,7','-6,6','-6,5','-6,4','-6,3','-6,2','-6,1','-6,0','-6,-1','-6,-2','-6,-3','-6,-4','-6,-5','-6,-6','-6,-7','-6,-8','-6,-9','-6,-10','-6,-11',
+                        '-7,11','-7,10','-7,9','-7,8','-7,7','-7,6','-7,5','-7,4','-7,3','-7,2','-7,1','-7,0','-7,-1','-7,-2','-7,-3','-7,-4','-7,-5','-7,-6','-7,-7','-7,-8','-7,-9','-7,-10','-7,-11',
+                        '-8,11','-8,10','-8,9','-8,8','-8,7','-8,6','-8,5','-8,4','-8,3','-8,2','-8,1','-8,0','-8,-1','-8,-2','-8,-3','-8,-4','-8,-5','-8,-6','-8,-7','-8,-8','-8,-9','-8,-10','-8,-11',
+                        '-9,11','-9,10','-9,9','-9,8','-9,7','-9,6','-9,5','-9,4','-9,3','-9,2','-9,1','-9,0','-9,-1','-9,-2','-9,-3','-9,-4','-9,-5','-9,-6','-9,-7','-9,-8','-9,-9','-9,-10','-9,-11',
+                        '-10,11','-10,10','-10,9','-10,8','-10,7','-10,6','-10,5','-10,4','-10,3','-10,2','-10,1','-10,0','-10,-1','-10,-2','-10,-3','-10,-4','-10,-5','-10,-6','-10,-7','-10,-8','-10,-9','-10,-10','-10,-11',
+                        '-11,11','-11,10','-11,9','-11,8','-11,7','-11,6','-11,5','-11,4','-11,3','-11,2','-11,1','-11,0','-11,-1','-11,-2','-11,-3','-11,-4','-11,-5','-11,-6','-11,-7','-11,-8','-11,-9','-11,-10','-11,-11'],
+                'Value': [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+                          0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,
+                          0,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          3,3,3,3,3,3,3,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,3,3,3,3,3,3,0,0,0,0,0,0,0,3,3,3,0,0,0,0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,3,3,3,3,3,3,0,
+                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,
+                          0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,3,3,
+                          3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]}
+# Set Board_0_data to datframe
 Board_0 = pd.DataFrame(data = Board_0_data)
+This_Turn = Board_0
+This_Turn.to_csv('Board_'+str(Turn_No) +'.csv',index=False)
 
-This_Turn = pd.read_csv ('Board_0.csv', header = 0)
-These_Scores =pd.read_csv ('Scores_0.csv', header = 0)
-
+Scores_0_data = {'InPlay_P1': [0],
+                'InPlay_P2': [0],
+                'Markers_P1': [Markers_P1],
+                'Markers_P2': [Markers_P2]}
+Scores_0 = pd.DataFrame(data = Scores_0_data)
+These_Scores = Scores_0
+These_Scores.to_csv('Scores_'+str(Turn_No) +'.csv',index=False)
 
 #%% Step 3, Setup the initial part of the front end
 # This has to happen before Show_Board() is called because Show_Board() uses the panel.
@@ -209,7 +228,7 @@ def Remove_old_files():
         else:
             pass
 
-        file_no = file_no +1
+        file_no = file_no + 1
         
 #Remove_old_files()       
 
@@ -284,6 +303,10 @@ def Show_Board():
 #%% Calculate score
 def Calculate_Scores():
     global Turn_No
+    global P1_Used
+    global P2_Used
+    global Last_Turn
+    global Player
     
     # Makes sure code doesn't crash during Turn 0
     if Turn_No == 0:
@@ -296,9 +319,17 @@ def Calculate_Scores():
  
 # Define scores for this turn based on 'Scores' and current markers used    
     These_Scores['InPlay_P1'].loc[0] = This_Turn[This_Turn.Value == 1].sum().loc['Value']
-    These_Scores['InPlay_P2'].loc[0] = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)  
-    These_Scores['Markers_P1'].loc[0] = Scores['Markers_P1'].loc[0] - P1_Used
-    These_Scores['Markers_P2'].loc[0] = Scores['Markers_P2'].loc[0] - P2_Used
+    These_Scores['InPlay_P2'].loc[0] = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
+    
+    if Last_Turn == 1 and Player == 2:
+        pass
+    else:
+        These_Scores['Markers_P1'].loc[0] = Scores['Markers_P1'].loc[0] - P1_Used
+        
+    if Last_Turn == 1 and Player == 1:
+        pass
+    else:
+        These_Scores['Markers_P2'].loc[0] = Scores['Markers_P2'].loc[0] - P2_Used
 
 #%% Print scores and board
 def Save_Scores():
@@ -313,16 +344,19 @@ def Player_Check():
     global Player
     global Opponent
     global Turn_No
+    global Markers_P1
+    global Markers_P2
+    global Last_Turn
     
     if Markers_P1 <= 0:
         Player = 2
         Opponent = 1
-        print('Black player...your turn')
+        print('Black player ...your turn')
     elif Markers_P2 <= 0:
         Player = 1
         Opponent = 2
         print('White player...your turn')
-    else:
+    elif Last_Turn == 0:
         if Turn_No % 2 == 0:
             Player = 1
             Opponent = 2
@@ -330,69 +364,9 @@ def Player_Check():
         else:
             Player = 2
             Opponent = 1
-            print('Black player...your turn')    
-
-#%% Input co-ordinates, checks that inputted co-ordinates match the entry requirements.
-# If so, passes to Take_Turn(), If not, displays error message.
-def Input():      
-    global Place_x
-    global Place_y 
-    global entry1
-    global coords
-    global Last_Turn
-       
-    # The entry requirements are that:
-    # 1. Integers between -10 and 10 must be used.
-    # 2. They must be seperated by a single comma.
-    # 3. They must represent a location on the board.
-    # 4. The location must be unoccupied by another piece.
-    
-    Pass = 0
-    
-    # 1. Check that there is text in input1 and that it has at least one comma.
-    if (str(entry1.get()) != '') and (',' in str(entry1.get())):
-        coords = list(entry1.get().split(','))
-        Place_x = int(coords[0])
-        Place_y = int(coords[1])
-        entry1.delete(0, END)
-        Pass = Pass + 1
-    else:
-        entry1.delete(0, END)
-        
-        
-    # 2. Check to see if Place_x and Place_y are integers between -10 and 10
-    if (-10 <= Place_x <= 10) and (-10 <= Place_y <= 10):
-        Pass = Pass + 1        
+            print('Black player...your turn')   
     else:
         pass
-    
-    # Check to see if co-ordinate is on board
-    while (sum(1 for item in This_Turn['x'] if item==(Place_x)) == 0) and (sum(1 for item in This_Turn['y'] if item==(Place_y)) == 0):
-        pass
-    else:
-        Pass = Pass + 1
-    
-    # 4. Check to see if required space is occupied
-    # Find the row relating to the place location
-    Place_index = Board_0[Board_0['x,y']==str(str(Place_x) + ',' + str(Place_y))].index.values
-
-    Place_State = int(This_Turn['Value'].loc[Place_index])
-    if Place_State > 0:
-        pass
-    else:
-        Pass = Pass + 1
-    
-    # Check to see if all stages passed, if so contunue, if not pass
-    if Pass == 4:
-        if Last_Turn == 0:
-            Take_Turn()
-        else:
-            pass
-        #check to see if the space is correct regarding the last go rules.
-    else:
-        print('Entered co-ordinate is incorrect, please try again')
-        
-        
         
 #%% Define neighbour index
 def Define_Neighbour_Index():   
@@ -404,6 +378,8 @@ def Define_Neighbour_Index():
     global e_index
     global f_index
     global Place_index
+    global lookup_x
+    global lookup_y
 
 # Defines different e and f indexes if x value is odd or even   
     Place_index = Board_0[Board_0['x,y']==str(str(lookup_x) + ',' + str(lookup_y))].index.values
@@ -447,73 +423,7 @@ def Define_Neighbour_States():
     
 # Create a list of neighbour vals to be interrogated later
     Neighbour_vals = [int(a_state), int(b_state), int(c_state),
-                      int(d_state), int(e_state), int(f_state)]
-
-#%% Last_Go()
-def Last_Go():
-    global Player_Markers
-    
-    Last_Turn = 1
-            
-    if Player == 2:
-        print('Black player, this is your last go, good luck!')
-                
-    else:
-        print('White player, this is your last go, good luck!')
-            
-    Calculate_Scores()
-    Save_Scores()
-    Save_Board()
-    Show_Board()
-            
-    if Player_Markers > 0:
-            
-        if Player == 2:
-            print('Black player its still your turn')
-                
-        else:
-            print('White player its still your turn')
-                    
-        # Here we need to trigger Input() but in a way that it wouldn't
-        # trigger Take_Turn() aftter.
-                                                     
-        Place_index = Board_0[Board_0['x,y']==str(str(Place_x) + ',' + str(Place_y))].index.values
-        Place_State = int(This_Turn['Value'].loc[Place_index])
-                
-        # Check to see if required space is neighbour
-        Neighbour_index = [int(a_index), int(b_index), int(c_index),
-                           int(d_index), int(e_index), int(f_index)]
-                
-        if sum(1 for item in Neighbour_index if item==(int(Place_index))) == 0:
-            print('You cant go there, try again')
-            Player_Markers = Player_Markers + 1
-        else:            
-            # Check to see if required space is occupied
-            if Place_State == int(Player):
-                print('You have already gone there, try again')
-                Player_Markers = Player_Markers + 1
-                    
-            else:                                 
-                Place_index = Board_0[Board_0['x,y']==str(str(Place_x) + ',' + str(Place_y))].index.values
-                This_Turn['Value'].loc[Place_index] = int(Player)
-                        
-                if int(Player) == 1:
-                    P1_Used = P1_Used + 1
-                
-                else:
-                    P2_Used = P2_Used + 1
-                
-            Calculate_Scores()
-            Save_Scores()
-            Save_Board() 
-            Show_Board()
-                
-            Player_Markers = int(These_Scores[str('Markers_P' + str(Player))].loc[0])
-                
-            Last_Turn = 0
-                
-            Turn_No = Turn_no - 1
-                    
+                      int(d_state), int(e_state), int(f_state)]                    
 
 #%% Step 3, Set turn number and place a token
 def Take_Turn():
@@ -547,11 +457,22 @@ def Take_Turn():
     global Neighbour_vals
     global Player
     global Last_Turn
+    global Player_Markers
+    global Req_Markers
+    global Neighbour_index
+    global Last_Turn_Count
+    global Total_Markers
     
     # Increase turn number and reset numbers used
-    Turn_No =  Turn_No + 1
-    P1_Used = 0
-    P2_Used = 0
+    Turn_No = Turn_No + 1
+    
+    if Last_Turn == 0:
+        P1_Used = 0
+        P2_Used = 0
+    else:
+        pass
+
+    Calculate_Scores()
     
     # Define this turn board and scores state
     variables = globals()
@@ -561,12 +482,11 @@ def Take_Turn():
     # Find the row relating to the place location
     Place_index = Board_0[Board_0['x,y']==str(str(Place_x) + ',' + str(Place_y))].index.values
     
-    #Define new board state as new df (allowing for backtracking)
+    # Define new board state as new df (allowing for backtracking)
     This_Turn['Value'].loc[Place_index] = int(Player)
     
     if int(Player) == 1:
         P1_Used = P1_Used + 1
-
     else:
         P2_Used = P2_Used + 1
 
@@ -582,21 +502,18 @@ def Take_Turn():
         
     Define_Neighbour_Index()
     Define_Neighbour_States()
-    
-    # Need some game state identifier
                                           
     # Identify if this is the players last go or not.
     # Check if the number of markers required to play is greater than those available
-    Req_Markers = sum(1 for item in Neighbour_vals if item==(0)) + 1
+    if Last_Turn == 1:
+        pass
+    else:
+        Req_Markers = sum(1 for item in Neighbour_vals if item != 3) - sum(1 for item in Neighbour_vals if item == Player)
+        
     Player_Markers = int(These_Scores[str('Markers_P' + str(Player))].loc[0])
-      
-    # If so then keep player playing until they run out of markers
-    # This ends up in a death loop, needs sorting out. I wonder if we can deal with this during the 
-    if Req_Markers >= Player_Markers:
-        Last_Go()
      
-    # If not then fill neighbours
-    elif Req_Markers < Player_Markers:
+    # If so then fill neighbours
+    if Req_Markers <= Player_Markers:
         Neighbour_No = 1
     
         Neighbours = dict([(1, 'a'), (2, 'b'), (3, 'c'), (4, 'd'), (5, 'e'), (6, 'f')])
@@ -612,7 +529,6 @@ def Take_Turn():
                 This_Turn['Value'].loc[variables['{}_index'.format(Neighbours[Neighbour_No])]] = int(Player)
                 if int(Player) == 1:
                     P1_Used = P1_Used + 1
-                    
                 else:
                     P2_Used = P2_Used + 1                    
     
@@ -622,158 +538,323 @@ def Take_Turn():
         Save_Scores()
         Save_Board()
         Show_Board()
+        
+    # If not then perform last go procedures
+    # Need some method here for remembering what the initial played position was on the first move of the last go.
+    elif Req_Markers > Player_Markers:
+        Last_Turn_Count = Last_Turn_Count + 1
+        
+        # Sets the condition for the last go, enabling code below to be skipped until the last go is over.
+        if Player_Markers > 0:
+            Last_Turn = 1
+        else:
+            Last_Turn = 0
+    
+        if Player == 2 and Last_Turn_Count == 1:
+            print('Black player, this is your last go, good luck!')
+        elif Player == 1 and Last_Turn_Count == 1:
+            print('White player, this is your last go, good luck!')
+        else:
+            pass
+                
+        if Player_Markers > 0:
+            if Player == 2:
+                print('Black player its still your turn')
+            elif Player == 1:
+                print('White player its still your turn')
+            else:
+                Last_Turn_Count == 0
+                    
+            # Define Neighbour_index and make sure that only these spaces are used for future moves   
+            if Last_Turn_Count == 1:
+                Neighbour_index = [int(a_index), int(b_index), int(c_index), int(d_index), int(e_index), int(f_index)]
+            else:
+                pass                    
+                    
+        Player_Markers = int(These_Scores[str('Markers_P' + str(Player))].loc[0])
+                
+        Turn_No =  Turn_No - 1
+                
+       # Req_Markers = Req_Markers - 1
+            
+        Calculate_Scores()
+        Save_Scores()
+        Save_Board()
+        Show_Board()
             
     else:
-        pass
+        Calculate_Scores()
+        Save_Scores()
+        Save_Board()
+        Show_Board()
                                            
-# Step 5, Search for and remove enclosed areas
-    # Start with opposing player no
-    No_Rotations = 0
-    InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
-    InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
+    if Last_Turn == 1 and ((Player == 1 and Markers_P1 > 0) or (Player == 2 and Markers_P2 > 0)):
+        pass
+    else:
+        # Reset Last_Turn and Last_Turn_Count == 0
+        Last_Turn == 0
+        Last_Turn_Count == 0
         
-    # Setup loop to repeat until each piece is assessed
-    while No_Rotations <= max(InPlay_P1,InPlay_P2):        
-        This_Turn_index = 0
-        # Setup loop to run through each row of board
-        while This_Turn_index <= 528:
-            if int(This_Turn['Value'].loc[int(This_Turn_index)]) == int(Opponent):
-                lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
-                lookup_y = This_Turn['y'].loc[int(This_Turn_index)]
-
-                Define_Neighbour_Index()
-                    
-                Define_Neighbour_States() 
-
-                # Mark anything with "0" neighbours as "4"
-                if sum(1 for item in Neighbour_vals if item==(0)) > 0:
-                    This_Turn['Value'].loc[This_Turn_index] = 4
-
-                # Mark anything with "4" neighbours as "4"
-                if sum(1 for item in Neighbour_vals if item==(4)) > 0:
-                    This_Turn['Value'].loc[This_Turn_index] = 4
-            
-                This_Turn_index = This_Turn_index + 1
-                    
-            else:
-                This_Turn_index = This_Turn_index + 1
-        
-        # Repeat for every board Rotation
-        No_Rotations = No_Rotations + max(1, (max(InPlay_P1,InPlay_P2) - max(This_Turn[This_Turn.Value == 1].sum().loc['Value'], int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2))))
+        # Step 5, Search for and remove enclosed areas
+        # Start with opposing player no.
+        # Maybe this could be a seperate function
+        # Need to run this after last go
+        No_Rotations = 0
         InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
         InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
-        
-    # Mark all remaining opponent as "0"
-    This_Turn.loc[(This_Turn.Value == int(Opponent)),'Value'] = 0
             
-    # Mark all 4s as Opponent no
-    This_Turn.loc[(This_Turn.Value == 4),'Value'] = int(Opponent)
-
-    # Repeat for player
-    No_Rotations = 0
-    InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
-    InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
-        
-    while No_Rotations <= max(InPlay_P1,InPlay_P2):        
-        This_Turn_index = 0
-        while This_Turn_index <= 528:
-            if int(This_Turn['Value'].loc[int(This_Turn_index)]) == int(Player):
-
-                lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
-                lookup_y = This_Turn['y'].loc[int(This_Turn_index)]
-                    
-                Define_Neighbour_Index()
-                    
-                Define_Neighbour_States()
-                    
-                # Mark anything with "0" neighbours as "4"
-                if sum(1 for item in Neighbour_vals if item==(0)) > 0:
-                    This_Turn['Value'].loc[This_Turn_index] = 4
-
-                # Mark anything with "4" neighbours as "4"
-                if sum(1 for item in Neighbour_vals if item==(4)) > 0:
-                    This_Turn['Value'].loc[This_Turn_index] = 4
-            
-                This_Turn_index = This_Turn_index + 1
-                    
-            else:
-                This_Turn_index = This_Turn_index + 1
-        
-        # Repeat for every board Rotation
-        No_Rotations = No_Rotations + max(1, (max(InPlay_P1,InPlay_P2) - max(This_Turn[This_Turn.Value == 1].sum().loc['Value'], int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2))))
-        InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
-        InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
-                
-    # Mark all remaining player as "0"
-    This_Turn['Value'] = np.where((This_Turn.Value == int(Player)), 0, This_Turn.Value)
-            
-    # Mark all 4s as player no
-    This_Turn['Value'] = np.where((This_Turn.Value == 4), int(Player), This_Turn.Value)
-
-    # Step 6, Search for and remove one-neighboured tokens 
-    No_Rotations = 0
-    InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
-    InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
-        
-    while No_Rotations <= max(InPlay_P1,InPlay_P2):
-        This_Turn_index = 0
-        while This_Turn_index <= 528:
-            if int(This_Turn['Value'].loc[int(This_Turn_index)]) == 1:
-                lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
-                lookup_y = This_Turn['y'].loc[int(This_Turn_index)]
-        
-                Define_Neighbour_Index()
-                Define_Neighbour_States()
-                
-                if sum(1 for item in Neighbour_vals if item==(1)) <= 1:
-                    This_Turn['Value'].loc[This_Turn_index] = 0
-            
-                else:
-                    pass
+        # Setup loop to repeat until each piece is assessed
+        while No_Rotations <= max(InPlay_P1,InPlay_P2):        
+            This_Turn_index = 0
+            # Setup loop to run through each row of board
+            while This_Turn_index <= 528:
+                if int(This_Turn['Value'].loc[int(This_Turn_index)]) == int(Opponent):
+                    lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
+                    lookup_y = This_Turn['y'].loc[int(This_Turn_index)]
     
-            elif int(This_Turn['Value'].loc[int(This_Turn_index)]) == 2:
-                lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
-                lookup_y = This_Turn['y'].loc[int(This_Turn_index)] 
-
-                Define_Neighbour_Index()
-                Define_Neighbour_States()
-       
-                if sum(1 for item in Neighbour_vals if item==(2)) <= 1:
-                    This_Turn['Value'].loc[This_Turn_index] = 0
-                    
-                else:
-                    pass
-            
-            else:
-                pass
+                    Define_Neighbour_Index()
+                        
+                    Define_Neighbour_States() 
+    
+                    # Mark anything with "0" neighbours as "4"
+                    if sum(1 for item in Neighbour_vals if item==(0)) > 0:
+                        This_Turn['Value'].loc[This_Turn_index] = 4
+    
+                    # Mark anything with "4" neighbours as "4"
+                    if sum(1 for item in Neighbour_vals if item==(4)) > 0:
+                        This_Turn['Value'].loc[This_Turn_index] = 4
                 
-            This_Turn_index = This_Turn_index + 1
-
-        No_Rotations = No_Rotations + max(1, (max(InPlay_P1,InPlay_P2) - max(This_Turn[This_Turn.Value == 1].sum().loc['Value'], int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2))))
+                    This_Turn_index = This_Turn_index + 1
+                        
+                else:
+                    This_Turn_index = This_Turn_index + 1
+            
+            # Repeat for every board Rotation
+            No_Rotations = No_Rotations + max(1, (max(InPlay_P1,InPlay_P2) - max(This_Turn[This_Turn.Value == 1].sum().loc['Value'], int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2))))
+            InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
+            InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
+            
+        # Mark all remaining opponent as "0"
+        This_Turn.loc[(This_Turn.Value == int(Opponent)),'Value'] = 0
+                
+        # Mark all 4s as Opponent no
+        This_Turn.loc[(This_Turn.Value == 4),'Value'] = int(Opponent)
+    
+        # Repeat for player
+        No_Rotations = 0
         InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
         InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
+            
+        while No_Rotations <= max(InPlay_P1,InPlay_P2):        
+            This_Turn_index = 0
+            while This_Turn_index <= 528:
+                if int(This_Turn['Value'].loc[int(This_Turn_index)]) == int(Player):
+    
+                    lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
+                    lookup_y = This_Turn['y'].loc[int(This_Turn_index)]
+                        
+                    Define_Neighbour_Index()
+                        
+                    Define_Neighbour_States()
+                        
+                    # Mark anything with "0" neighbours as "4"
+                    if sum(1 for item in Neighbour_vals if item==(0)) > 0:
+                        This_Turn['Value'].loc[This_Turn_index] = 4
+    
+                    # Mark anything with "4" neighbours as "4"
+                    if sum(1 for item in Neighbour_vals if item==(4)) > 0:
+                        This_Turn['Value'].loc[This_Turn_index] = 4
+                
+                    This_Turn_index = This_Turn_index + 1
+                        
+                else:
+                    This_Turn_index = This_Turn_index + 1
+            
+            # Repeat for every board Rotation
+            No_Rotations = No_Rotations + max(1, (max(InPlay_P1,InPlay_P2) - max(This_Turn[This_Turn.Value == 1].sum().loc['Value'], int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2))))
+            InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
+            InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
                     
-    Calculate_Scores()
+        # Mark all remaining player as "0"
+        This_Turn['Value'] = np.where((This_Turn.Value == int(Player)), 0, This_Turn.Value)
+                
+        # Mark all 4s as player no
+        This_Turn['Value'] = np.where((This_Turn.Value == 4), int(Player), This_Turn.Value)
+    
+        # Step 6, Search for and remove one-neighboured tokens
+        # Maybe this could be a seperate function
+        No_Rotations = 0
+        InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
+        InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
+            
+        while No_Rotations <= max(InPlay_P1,InPlay_P2):
+            This_Turn_index = 0
+            while This_Turn_index <= 528:
+                if int(This_Turn['Value'].loc[int(This_Turn_index)]) == 1:
+                    lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
+                    lookup_y = This_Turn['y'].loc[int(This_Turn_index)]
+            
+                    Define_Neighbour_Index()
+                    Define_Neighbour_States()
+                    
+                    if sum(1 for item in Neighbour_vals if item==(1)) <= 1:
+                        This_Turn['Value'].loc[This_Turn_index] = 0
+                
+                    else:
+                        pass
         
-    Show_Board()
+                elif int(This_Turn['Value'].loc[int(This_Turn_index)]) == 2:
+                    lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
+                    lookup_y = This_Turn['y'].loc[int(This_Turn_index)] 
+    
+                    Define_Neighbour_Index()
+                    Define_Neighbour_States()
+           
+                    if sum(1 for item in Neighbour_vals if item==(2)) <= 1:
+                        This_Turn['Value'].loc[This_Turn_index] = 0
+                        
+                    else:
+                        pass
+                
+                else:
+                    pass
+                    
+                This_Turn_index = This_Turn_index + 1
+    
+            No_Rotations = No_Rotations + max(1, (max(InPlay_P1,InPlay_P2) - max(This_Turn[This_Turn.Value == 1].sum().loc['Value'], int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2))))
+            InPlay_P1 = This_Turn[This_Turn.Value == 1].sum().loc['Value']
+            InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
+                        
+        Calculate_Scores()
+            
+        Show_Board()
 
     # End the go and the formation of a new board
+    Calculate_Scores()
+    
     Markers_P1 = int(These_Scores['Markers_P1'].loc[0])
     Markers_P2 = int(These_Scores['Markers_P2'].loc[0])
+    
     Save_Scores()
     Save_Board()
         
     Total_Markers = Markers_P1 + Markers_P2
             
-    Player_Check()    
+    Player_Check()   
     Show_Board()
+    
+    # Sort out endgame
+    if Markers_P1 <= 0 and Markers_P2 <= 0:
+        # End Game and display winner!
+        InPlay_P1 = These_Scores['InPlay_P1'].loc[0]
+        InPlay_P2 = These_Scores['InPlay_P2'].loc[0]
+        
+        # Calculate margin percentage
+        Margin_Of_Victory = ((InPlay_P1 - InPlay_P2)**2)**(0.5)
+        Total_InPlay = InPlay_P1 + InPlay_P2
+        Margin_Percentage = (100 * int(Margin_Of_Victory))/Total_InPlay
+            
+        # Determine outcome based on margin percentage
+        if Margin_Percentage < 5:
+            outcome = 'a Hollow Victory'
+        elif 6 <=Margin_Percentage <= 15:
+            outcome = 'a Technical Victory'        
+        elif 16 <= Margin_Percentage <= 30:
+            outcome = 'an Outright Victory'    
+        elif 31 <= Margin_Percentage <= 50:
+            outcome = 'DOMINATION'    
+        elif Margin_Percentage > 50:
+            outcome = 'an ANNIHILATION'
+        else:
+            pass    
+            
+        # Define winner
+        if These_Scores['InPlay_P1'].loc[0] > These_Scores['InPlay_P2'].loc[0]:
+            winner = 'White'
+        else:
+            winner = 'Black'
+            
+        # Print outcome
+        if InPlay_P1 == InPlay_P2:
+            print('End of game, A Draw? How did that happen?')
+        else:
+            print('End of game, congratulations ' + str(winner) + ', you acheived ' + str(outcome))
+            
+        #Remove_old_files()
+    
+#%% Input co-ordinates, checks that inputted co-ordinates match the entry requirements.
+# If so, passes to Take_Turn(), If not, displays error message.
+def Input():      
+    global Place_x
+    global Place_y 
+    global entry1
+    global coords
+    global Last_Turn
+    global Neighbour_index
+       
+    # The entry requirements are that:
+    # 1. Integers between -10 and 10 must be used.
+    # 2. They must be seperated by a single comma.
+    # 3. They must represent a location on the board.
+    # 4. The location must be unoccupied by another piece
+    #    (unless its the last go in which case it can be occupied by the opponents piece).
+    
+    Pass = 0
+    
+    # 1. Check that there is text in input1 and that it has at least one comma.
+    if (str(entry1.get()) != '') and (',' in str(entry1.get())):
+        coords = list(entry1.get().split(','))
+        Place_x = int(coords[0])
+        Place_y = int(coords[1])
+        entry1.delete(0, END)
+        Pass = Pass + 1
+    else:
+        entry1.delete(0, END)
+        
+    # 2. Check to see if Place_x and Place_y are integers between -10 and 10
+    if (-10 <= Place_x <= 10) and (-10 <= Place_y <= 10):
+        Pass = Pass + 1        
+    else:
+        pass
+    
+    # 3. Check to see if co-ordinate is on board
+    while (sum(1 for item in This_Turn['x'] if item==(Place_x)) == 0) and (sum(1 for item in This_Turn['y'] if item==(Place_y)) == 0):
+        pass
+    else:
+        Pass = Pass + 1
+    
+    # 4. Check to see if required space is occupied
+    # Find the row relating to the place location
+    Place_index = Board_0[Board_0['x,y']==str(str(Place_x) + ',' + str(Place_y))].index.values
+    Place_State = int(This_Turn['Value'].loc[Place_index])
+    
+    if Last_Turn == 0 and Place_State > 0:
+        pass
+    elif Last_Turn == 1 and Place_State != Player:
+        Pass = Pass + 1
+    elif Last_Turn == 1 and Place_State == Player:
+        pass
+    else:
+        Pass = Pass + 1
+    
+    # Check to see if all stages passed, if so contunue, if not pass
+    if Pass == 4 and Last_Turn == 0:
+        Take_Turn()
+    elif Pass == 4 and Last_Turn == 1 and ((sum(1 for item in Neighbour_index if item == Place_index)) > 0): 
+        Take_Turn()
+    else:
+        print('Entered co-ordinate is incorrect, please try again')
         
 #%% What the buttons do
 def Go_Back():
+    global This_Turn
+    global Markers_P1
+    global Markers_P2
+    
     to_turn = int(input('To turn: '))
                 
     Turn_No = int(to_turn)
-               
+              
     This_Turn = pd.read_csv ('Board_' + str(Turn_No) + '.csv', header = 0) 
     These_Scores = pd.read_csv ('Scores_' + str(Turn_No) + '.csv', header = 0)    
     Markers_P1 = int(These_Scores['Markers_P1'].loc[0])
@@ -783,9 +864,7 @@ def Go_Back():
 
 #%% Create and show board to players
 Calculate_Scores()
-
 Player_Check()
-
 Show_Board()
                
 #%% Some other front end stuff
@@ -800,52 +879,6 @@ BGB.pack()
 
 entry1 = tk.Entry (root) 
 canvas.create_window(20, 15, window=entry1)
-
-#%% Sort out engame
-if Markers_P1 <= 0 and Markers_P2 <= 0:
-    # End Game and display winner!
-    InPlay_P1 = These_Scores['InPlay_P1'].loc[0]
-    InPlay_P2 = These_Scores['InPlay_P2'].loc[0]
-    
-    # Calculate margin percentage
-    Margin_Of_Victory = ((InPlay_P1 - InPlay_P2)**2)**(0.5)
-    Total_InPlay = InPlay_P1 + InPlay_P2
-    Margin_Percentage = (100 * int(Margin_Of_Victory))/Total_InPlay
-        
-    # Determine outcome based on margin percentage
-    if Margin_Percentage < 5:
-        outcome = 'a Hollow Victory'
-          
-    elif 6 <=Margin_Percentage <= 15:
-        outcome = 'a Technical Victory'
-            
-    elif 16 <= Margin_Percentage <= 30:
-        outcome = 'an Outright Victory'    
-        
-    elif 31 <= Margin_Percentage <= 50:
-        outcome = 'DOMINATION'
-        
-    elif Margin_Percentage > 50:
-        outcome = 'an ANNIHILATION'
-            
-    else:
-        pass    
-        
-    # Define winner
-    if These_Scores['InPlay_P1'].loc[0] > These_Scores['InPlay_P2'].loc[0]:
-        winner = 'White'
-        winner_no = entry1
-    else:
-        winner = 'Black'
-        winner_no = 2
-        
-    # Print outcome
-    if InPlay_P1 == InPlay_P2:
-        print('End of game, A Draw? How did that happen?')
-    else:
-        print('End of game, congratulations ' + str(winner) + ', you acheived ' + str(outcome))
-        
-    #Remove_old_files()
 
 # No idea what this does but its  important.
 root.mainloop()    
