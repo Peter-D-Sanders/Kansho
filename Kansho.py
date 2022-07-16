@@ -23,6 +23,7 @@ Date          Version     Author         Description
 12/06/2020    v1.1        Pete Sanders   Bug fixes
                                          Minor alterations to board display
                                          Prints board images to files
+20/05/2022    v2.0        Pete Sanders   Included some basic front end.                                         
                                          
 RECOMMENDED FUTURE IMPROVEMENTS:
     Make one neighboured tokens and enclosed areas loops more efficient.
@@ -39,6 +40,12 @@ import numpy as np
 from sys import exit
 import os
 from pathlib import Path
+import tkinter as tk
+import time
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tkinter import *
+from PIL import ImageTk, Image
+
 
 # Print instrustions
 print ('Instructions:', '\n',
@@ -54,7 +61,36 @@ print ('Instructions:', '\n',
 # Step 1, Define board grid
 Board_0 = pd.read_csv ('Board_0.csv', header = 0)
 
-# Define commonly used scripts
+# Step 2, initial conditions
+global Turn_No
+global Total_Markers
+global Markers_P1
+global Markers_P2
+global Used_P1
+global Used_P2
+global P1_Used
+global P2_Used
+global Turn_No
+
+Markers_P1 = 123
+Markers_P2 = 123
+Used_P1 = 0
+Used_P2 = 0
+P1_Used = 0
+P2_Used = 0
+Turn_No = 0
+This_Turn = pd.read_csv ('Board_0.csv', header = 0)
+These_Scores =pd.read_csv ('Scores_0.csv', header = 0)
+Total_Markers = Markers_P1 + Markers_P2
+Player = 1
+
+#%% Some front end stuff
+# Assignes some function within tk to root
+root = tk.Tk()
+img = ImageTk.PhotoImage(Image.open('Kansho - Logo.jpg'))
+panel = Label(root, image = img)
+panel.pack(side = "bottom", fill = "both", expand = "yes")
+
 #%% Remove_old_files()
 def Remove_old_files():
     file_no = 1
@@ -82,19 +118,7 @@ def Remove_old_files():
         file_no = file_no +1
         
 #Remove_old_files()       
-#%% Step 2, initial conditions
-global Turn_No
 
-Markers_P1 = 123
-Markers_P2 = 123
-Used_P1 = 0
-Used_P2 = 0
-P1_Used = 0
-P2_Used = 0
-Turn_No = 0
-This_Turn = pd.read_csv ('Board_0.csv', header = 0)
-These_Scores =pd.read_csv ('Scores_0.csv', header = 0)
-Total_Markers = Markers_P1 + Markers_P2
 
 #%% Calculate score
 def Calculate_Scores():
@@ -109,6 +133,10 @@ def Calculate_Scores():
 
 #%% Show Board
 def Show_Board():
+    global panel
+    global img
+    global Player
+    
     plt.figure(figsize=(10,10))
 
 # Define x, y co-ordinates and values (z)        
@@ -137,8 +165,14 @@ def Show_Board():
     plt.scatter(x_1,y_1, marker = 'o', s = 500, color = 'w', edgecolor = 'k')
     plt.scatter(x_2,y_2, marker = 'o', s = 500, color = 'k', edgecolor = 'k')
     plt.tight_layout()
+    
     #Chart annotations
     props = dict(boxstyle='round', facecolor=(0,0.6,0.6), alpha=0.7)
+    
+    if Player == 1:
+        plt.text(-10.5, -8.5, "White, it's your go", fontsize=18, verticalalignment='center', bbox=props)
+    else:
+        plt.text(-10.5, -8.5, "Black, it's your go", fontsize=18, verticalalignment='center', bbox=props)
     
     plt.text(-10.5, 8, 'White Score = ' + str("%.0f" % float(These_Scores['InPlay_P1'].loc[0])) +
                         '\n' + 'Black Score = ' + str("%.0f" % float(These_Scores['InPlay_P2'].loc[0])),
@@ -150,11 +184,17 @@ def Show_Board():
     
     plt.text(0, 0, 'Turn' + '\n' + str("%.0f" % float(Turn_No)), fontsize=18, verticalalignment='center', horizontalalignment='center', bbox=props)
     
+    
 # Pause chart to display during loops    
     plt.savefig('Turn_{}'.format(Turn_No) +'.jpg')
-    plt.pause(0.01)
-    plt.show
-Show_Board()
+    plt.pause(0.1)
+    
+    panel.destroy()
+       
+    img = ImageTk.PhotoImage(Image.open('Turn_{}'.format(Turn_No) +'.jpg'))
+    panel = Label(root, image = img)
+    panel.pack(side = "bottom", fill = "both", expand = "yes")
+
 #%% Create and show board to players
 # Define scores for turn 0
 Scores = pd.read_csv ('Scores_0.csv', header = 0)    
@@ -177,8 +217,17 @@ def Save_Board():
 #%% Input co-ordinatess
 # Determine if x input is an integer and throw out if not    
 def Input_x():      
-    global Place_x   
-    Place_x = input('Enter x co-ordinate: ')
+    global Place_x
+    global Place_y 
+    global entry1
+    global coords
+    
+    coords = list(entry1.get().split(','))
+        
+    Place_x = coords[0]
+    Place_y = coords[1]
+    
+    entry1.delete(0, END)
     
     try:
         int(Place_x)
@@ -190,12 +239,6 @@ def Input_x():
         except ValueError:
             print("Not a valid input, try again")
             Input_x()
-            
-# Determine if y input is an integer and throw out if not 
-def Input_y():
-    global Place_y    
-    Place_y = input('Enter y co-ordinate: ')
-    
     try:
         int(Place_y)
     except ValueError:
@@ -205,7 +248,8 @@ def Input_y():
             Input_y()
         except ValueError:
             print("Not a valid input, try again")
-            Input_y()  
+            Input_y()
+    
 #%% Define neighbour index
 def Define_Neighbour_Index():   
 # Define variables used in function     
@@ -291,6 +335,7 @@ def Take_Turn():
     global Place_x
     global Place_y
     global Neighbour_vals
+    global Player
     
     # Increase turn number and reset numbers used
     Turn_No =  Turn_No + 1
@@ -360,6 +405,7 @@ def Take_Turn():
         Calculate_Scores()
         Save_Scores()
         Save_Board()
+        
         Show_Board()
        
 # Step 4, Calculate markers required for go, and fill neighbours
@@ -428,7 +474,7 @@ def Take_Turn():
                 
                     Calculate_Scores()
                     Save_Scores()
-                    Save_Board()
+                    Save_Board() 
                     Show_Board()
                 
                     Player_Markers = int(These_Scores[str('Markers_P' + str(Player))].loc[0])
@@ -596,6 +642,7 @@ def Take_Turn():
             InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
                     
         Calculate_Scores()
+        
         Show_Board()
 
         # End the go and the formation of a new board
@@ -603,89 +650,110 @@ def Take_Turn():
         Markers_P2 = int(These_Scores['Markers_P2'].loc[0])
         Save_Scores()
         Save_Board()
-    
-#%% Setup loop for each turn whilst players still have markers
-while Total_Markers > 0:
-  
-    # Go back, continue or quit
-    global command_no
-    global command
-    global to_turn
-    
-    # Setup loop to allow command input
-    command_no = 0    
-    while command_no == 0:
-        print('Continue = c , Go back = go back, Quit = quit') 
-        command = str(input('what would you like do do: '))
-                    
-        if command == str('c'):
-            command_no = 1
-    
-        elif command == str('go back'):
-            to_turn = int(input('To turn: '))
-            
-            Turn_No = int(to_turn)
-           
-            This_Turn = pd.read_csv ('Board_' + str(Turn_No) + '.csv', header = 0) 
-            These_Scores = pd.read_csv ('Scores_' + str(Turn_No) + '.csv', header = 0)    
-            Markers_P1 = int(These_Scores['Markers_P1'].loc[0])
-            Markers_P2 = int(These_Scores['Markers_P2'].loc[0])
-
-            Show_Board()
-          
-            command_no = 1
-            
-        elif command == str('quit'):
-            #Remove_old_files()
-            exit()
         
+        Total_Markers = Markers_P1 + Markers_P2
+        
+        # Update the player on the board
+        Turn_No = Turn_No + 1
+        
+        if Markers_P1 <= 0:
+            Player = 2
+        elif Markers_P2 <= 0:
+            Player = 1
         else:
-            command_no = 0
-            
-    Take_Turn()
-           
-    Total_Markers = Markers_P1 + Markers_P2
+            if Turn_No % 2 == 0:
+                Player = 2
+            else:
+                Player = 1
+        
+        Turn_No = Turn_No - 1
+        
+        Show_Board()
+        
+        
+        
+#%% What the buttons do
+def Go_Back():
+    to_turn = int(input('To turn: '))
+                
+    Turn_No = int(to_turn)
+               
+    This_Turn = pd.read_csv ('Board_' + str(Turn_No) + '.csv', header = 0) 
+    These_Scores = pd.read_csv ('Scores_' + str(Turn_No) + '.csv', header = 0)    
+    Markers_P1 = int(These_Scores['Markers_P1'].loc[0])
+    Markers_P2 = int(These_Scores['Markers_P2'].loc[0])
+                
+    Show_Board()
 
-#%% End Game and display winner!
+#%% Setup loop for each turn whilst players still have markers
+def GO():
+    global Total_Markers
+    global Markers_P1
+    global Markers_P2
+    global Used_P1
+    global Used_P2
+    global P1_Used
+    global P2_Used
+    global Turn_No
+               
+
+
+#%% Some other front end stuff
+                
+# Describes the button and what function it runs
+canvas = tk.Canvas(root, width = 40, height = 30)
+BTT = tk.Button(root, text = 'Take Turn', command = Take_Turn, bg='brown',fg='white')
+BGB = tk.Button(root, text = 'Go Back', command = Go_Back, bg='brown',fg='white')
+
+BTT.pack(); canvas.pack()
+BGB.pack()
+
+entry1 = tk.Entry (root) 
+canvas.create_window(20, 15, window=entry1)
+
+# End Game and display winner!
 InPlay_P1 = These_Scores['InPlay_P1'].loc[0]
 InPlay_P2 = These_Scores['InPlay_P2'].loc[0]
-
+    
 # Calculate margin percentage
-Margin_Of_Victory = ((InPlay_P1 - InPlay_P2)**2)**(1/2)
+Margin_Of_Victory = ((InPlay_P1 - InPlay_P2)**2)**(0.5)
 Total_InPlay = InPlay_P1 + InPlay_P2
 Margin_Percentage = (100 * int(Margin_Of_Victory))/Total_InPlay
-
+    
 # Determine outcome based on margin percentage
-if int(Margin_Percentage) < 5:
+if Margin_Percentage < 5:
     outcome = 'a Hollow Victory'
-  
-elif 6 <= int(Margin_Percentage) <= 15:
+      
+elif 6 <=Margin_Percentage <= 15:
     outcome = 'a Technical Victory'
-    
-elif 16 <= int(Margin_Percentage) <= 30:
+        
+elif 16 <= Margin_Percentage <= 30:
     outcome = 'an Outright Victory'    
-
-elif 31 <= int(Margin_Percentage) <= 50:
-    outcome = 'DOMINATION'
-
-elif int(Margin_Percentage) > 50:
-    outcome = 'an ANNIHILATION'
     
+elif 31 <= Margin_Percentage <= 50:
+    outcome = 'DOMINATION'
+    
+elif Margin_Percentage > 50:
+    outcome = 'an ANNIHILATION'
+        
 else:
     pass    
-
+    
 # Define winner
 if These_Scores['InPlay_P1'].loc[0] > These_Scores['InPlay_P2'].loc[0]:
     winner = 'White'
-    winner_no = 1
+    winner_no = entry1
 else:
     winner = 'Black'
     winner_no = 2
-
+    
 # Print outcome
 if InPlay_P1 == InPlay_P2:
     print('End of game, A Draw? How did that happen?')
 else:
     print('End of game, congratulations ' + str(winner) + ', you acheived ' + str(outcome))
-
+    
 #Remove_old_files()
+
+# No idea what this does but its  important.
+root.mainloop()    
