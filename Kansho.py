@@ -20,25 +20,27 @@ FUNCTIONS:
     Update_FE() - Allows the updating of the front end following resize or changes to Game_Notes
 
 UPDATE RECORD:
-Date          Version     Author         Description
-11/06/2020    v1.0        Pete Sanders   Created
-12/06/2020    v1.1        Pete Sanders   Bug fixes
-                                         Minor alterations to board display
-                                         Prints board images to files
-20/05/2022    v2.0        Pete Sanders   Included some basic front end.   
-24/05/2022    v2.1        Pete Sanders   Re-ordering of code to work better with front end commands.                                      
-16/06/2022    v2.3        Pete Sanders   Fixed issues with turn ordering and endgame.
-17/06/2022    v2.4        Pete Sanders   Made some improvements.
-19/06/2022    v2.5        Pete Sanders   
+Date          Version     Author          Description
+11/06/2020    v1.0        Pete Sanders    Created
+12/06/2020    v1.1        Pete Sanders    Bug fixes
+                                          Minor alterations to board display
+                                          Prints board images to files
+20/05/2022    v2.0        Pete Sanders    Included some basic front end.   
+24/05/2022    v2.1        Pete Sanders    Re-ordering of code to work better with front end commands.                                      
+16/06/2022    v2.3        Pete Sanders    Fixed issues with turn ordering and endgame.
+17/06/2022    v2.4        Pete Sanders    Made some improvements.
+19/06/2022    v2.5        Pete Sanders    Added Game_Notes and side pannel.
+19/06/2022    v2.6        Pete Sanders    Add 'Working on it...' to Game_Notes after completing a move.
+                                          Allowed entry using ENTER key.
                                         
 RECOMMENDED FUTURE IMPROVEMENTS:
     Make one neighboured tokens and enclosed areas loops more efficient.
     Mark placed marker as red when players last go to make it easier to know where to place other markers
     Allow game saving and sub-directories for saved games.
-
+    Find a better way to resize the FE.
+    Allow entering of location from clicking on board.
+    
 Bugs:
-    Issue with endgame if player has more than one go in a row to end go to turn 20 and place in 17,17 to investigate.
-    I think the above has been fixed but this is an intermittent bug so leaving log here for future ref.
 
 """
 #%% Import nessessary modules
@@ -70,10 +72,10 @@ global Game_Notes
 Game_Notes = """Instructions:
        The input boxes will be used to input your moves and commands.
        When making a move enter the x and y co-ordinates for the move you want to make in the upper box.
-       Then click on the 'Take Turn' button.
+       Then click on the 'Take Turn' button or press the ENTER key.
        Co-ordinates can be entered using a decimal point e.g. (1 , 1.5).
        If you want to go back to a particular move or 'load a saved game' enter the number of the turn into the bottom box.
-       Then click on the 'Go To' button and the game can contunue from that move. \n \n"""
+       Then click on the 'Go To' button, or press the ENTER key, and the game can contunue from that move. \n \n"""
        
 Game_Notes =  Game_Notes + 'Have fun! \n \n'
 
@@ -90,6 +92,35 @@ Player = 1
 Opponent = 2
 Last_Turn = 0
 Last_Turn_Count = 0
+
+# Create sub-directiories
+here = os.getcwd()
+subdir1 = 'Game data'
+subdir11 = 'Scores'
+subdir12 = 'Boards'
+subdir13 = 'jpgs'
+
+path11 = Path(os.path.join(here, subdir1, subdir11))
+path12 = Path(os.path.join(here, subdir1, subdir12))
+path13 = Path(os.path.join(here, subdir1, subdir13))
+
+if os.path.isdir(path11) == False:
+    os.mkdir(os.path.join(here, subdir1, subdir11))
+
+else:
+    pass
+
+if os.path.isdir(path12) == False:
+    os.mkdir(os.path.join(here, subdir1, subdir12))
+
+else:
+    pass
+
+if os.path.isdir(path13) == False:
+    os.mkdir(os.path.join(here, subdir1, subdir13))
+
+else:
+    pass
 
 #%%  2. Define board and scores
 Board_0_data = {'x': [22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,
@@ -211,18 +242,19 @@ Board_0_data = {'x': [22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,2
 # Set Board_0_data to datframe
 Board_0 = pd.DataFrame(data = Board_0_data)
 This_Turn = Board_0
-This_Turn.to_csv('Board_'+str(Turn_No) +'.csv',index=False)
+This_Turn.to_csv('./Game data/Boards/Board_'+str(Turn_No) +'.csv',index=False)
 
 Scores_0_data = {'InPlay_P1': [0],
                 'InPlay_P2': [0],
                 'Markers_P1': [Markers_P1],
                 'Markers_P2': [Markers_P2],
-                'Player_No': [0],
-                'Player': ['Null']}
+                'Player_No': [2],
+                'Player': ['Black'],
+                'Last turn': [0],
+                'Last_Turn_Count': [0]}
 Scores_0 = pd.DataFrame(data = Scores_0_data)
 These_Scores = Scores_0
-These_Scores.to_csv('Scores_'+str(Turn_No) +'.csv',index=False)
-
+These_Scores.to_csv('./Game data/Scores/Scores_'+str(Turn_No) +'.csv',index=False)
 Game_Notes = (Game_Notes + 'Turn 0: \n     ' +
               'White has ' + str(Markers_P1) + ' markers, \n     ' +
               'Black has ' + str(Markers_P2) + ' markers, \n     ' +
@@ -326,7 +358,7 @@ def Show_Board():
     
     
     # Pause chart to display during loops    
-    plt.savefig('Turn_{}'.format(Turn_No) +'.jpg')
+    plt.savefig('./Game data/jpgs/' + 'Turn_{}'.format(Turn_No) +'.jpg')
     plt.close()
     plt.pause(0.1)
     
@@ -340,7 +372,7 @@ def Show_Board():
     
     panel.destroy()
     
-    img = Image.open('Turn_{}'.format(Turn_No) +'.jpg')
+    img = Image.open('./Game data/jpgs/' + 'Turn_{}'.format(Turn_No) +'.jpg')
     img = img.resize((imgsize, imgsize), Image.ANTIALIAS)
     img = ImageTk.PhotoImage(img)
     panel = Label(root, image = img)
@@ -353,15 +385,20 @@ def Calculate_Scores():
     global P2_Used
     global Last_Turn
     global Player
+    global Last_Turn
+    global Last_Turn_Count
     
     # Makes sure code doesn't crash during Turn 0
     if Turn_No == 0:
         Turn_No = 1
         # Pull in scores from previous turn file    
-        Scores = pd.read_csv ('Scores_' + str(Turn_No - 1) + '.csv', header = 0)
+        # Scores = pd.read_csv ('Scores_' + str(Turn_No - 1) + '.csv', header = 0)
+        Scores = pd.read_csv ('./Game data/Scores/Scores_' + str(Turn_No - 1) + '.csv', header = 0)
+        
         Turn_No = 0
     else:
-        Scores = pd.read_csv ('Scores_' + str(Turn_No - 1) + '.csv', header = 0)    
+        # Scores = pd.read_csv ('Scores_' + str(Turn_No - 1) + '.csv', header = 0)
+        Scores = pd.read_csv ('./Game data/Scores/Scores_' + str(Turn_No - 1) + '.csv', header = 0)
  
     # Define scores for this turn based on 'Scores' and current markers used    
     These_Scores['InPlay_P1'].loc[0] = This_Turn[This_Turn.Value == 1].sum().loc['Value']
@@ -382,21 +419,24 @@ def Calculate_Scores():
 
     if Player == 1 :
         These_Scores['Player'].loc[0] = 'White'
-        
     elif Player == 2:
-        These_Scores['Player'].loc[0] = 'Black'
-        
+        These_Scores['Player'].loc[0] = 'Black'  
     else:
         pass
+    
+    # Last turn
+    These_Scores['Last turn'].loc[0] = Last_Turn
+    These_Scores['Last_Turn_Count'].loc[0] = Last_Turn_Count
+
         
 #%% Print scores and board
 def Save_Scores():
     globals()['Scores_{}'.format(Turn_No)] = These_Scores
-    globals()['Scores_{}'.format(Turn_No)].to_csv('Scores_'+str(Turn_No)+'.csv',index=False)
-            
+    globals()['Scores_{}'.format(Turn_No)].to_csv('./Game data/Scores/Scores_'+str(Turn_No)+'.csv',index=False) 
+       
 def Save_Board():
     globals()['Board_{}'.format(Turn_No)] = This_Turn
-    globals()['Board_{}'.format(Turn_No)].to_csv('Board_'+str(Turn_No)+'.csv',index=False)
+    globals()['Board_{}'.format(Turn_No)].to_csv('./Game data/Boards/Board_'+str(Turn_No)+'.csv',index=False)
     
 #%% Player_Check() Check if player 1 or 2 is playing based on turn no. or number of markers
 def Player_Check():
@@ -416,9 +456,9 @@ def Player_Check():
         pass
     
     if Last_Turn == 0 and Player == 1 and Markers_P1 > 0:
-        Game_Notes = Game_Notes + 'White player...your turn \n \n'
+        Game_Notes = Game_Notes + 'White player...your turn. \n \n'
     elif Last_Turn == 0 and Player == 2 and Markers_P2 > 0:
-        Game_Notes = Game_Notes + 'Black player...your turn \n \n'
+        Game_Notes = Game_Notes + 'Black player...your turn. \n \n'
     else:
         pass
         
@@ -436,23 +476,27 @@ def Define_Neighbour_Index():
     global lookup_y
     global Neighbour_index
 
-# Defines different e and f indexes if x value is odd or even   
-    Place_index = Board_0[Board_0['x,y']==str(str(lookup_x) + ',' + str(lookup_y))].index.values
-    
-    if int(lookup_x) % 2 != 0:
-        e_index = Place_index - 22
-        f_index = Place_index + 24
-   
-    else:
-        e_index = Place_index + 22
-        f_index = Place_index - 24
+
+    if Last_Turn == 0:
+        # Defines different e and f indexes if x value is odd or even   
+        Place_index = Board_0[Board_0['x,y']==str(str(lookup_x) + ',' + str(lookup_y))].index.values
         
-    a_index = Place_index - 23
-    b_index = Place_index + 23
-    c_index = Place_index - 1
-    d_index = Place_index + 1
-    
-    Neighbour_index = [int(a_index), int(b_index), int(c_index), int(d_index), int(e_index), int(f_index)]
+        if int(lookup_x) % 2 != 0:
+            e_index = Place_index - 22
+            f_index = Place_index + 24
+       
+        else:
+            e_index = Place_index + 22
+            f_index = Place_index - 24
+            
+        a_index = Place_index - 23
+        b_index = Place_index + 23
+        c_index = Place_index - 1
+        d_index = Place_index + 1
+        
+        Neighbour_index = [int(a_index), int(b_index), int(c_index), int(d_index), int(e_index), int(f_index)]
+    else:
+        pass
     
 #%% Define_Neighbour_States
 def Define_Neighbour_States():    
@@ -533,8 +577,10 @@ def Take_Turn():
     
     # Define this turn board and scores state
     variables = globals()
-    This_Turn = pd.read_csv ('Board_' + str(Turn_No - 1) + '.csv', header = 0)
-    These_Scores = pd.read_csv ('Scores_' + str(Turn_No - 1) + '.csv', header = 0)
+    # This_Turn = pd.read_csv ('Board_' + str(Turn_No - 1) + '.csv', header = 0)
+    This_Turn = pd.read_csv ('./Game data/Boards/Board_' + str(Turn_No - 1) + '.csv', header = 0)
+    # These_Scores = pd.read_csv ('Scores_' + str(Turn_No - 1) + '.csv', header = 0)
+    These_Scores = pd.read_csv ('./Game data/Scores/Scores_' + str(Turn_No - 1) + '.csv', header = 0)
 
     # Find the row relating to the place location
     Place_index = Board_0[Board_0['x,y']==str(str(Place_x) + ',' + str(Place_y))].index.values
@@ -612,22 +658,16 @@ def Take_Turn():
             Game_Notes = Game_Notes + 'White player, this is your last go, good luck! \n \n'
         else:
             pass
-                
-        if Player_Markers > 0:
-            if Player == 2:
-                Game_Notes = Game_Notes + 'Black player its still your turn \n \n'
-            elif Player == 1:
-                Game_Notes = Game_Notes + 'White player its still your turn \n \n'
-            else:
-                Last_Turn_Count == 0
                     
-            # Define Neighbour_index and make sure that only these spaces are used for future moves   
-            if Last_Turn_Count == 1:
-                Neighbour_index = [int(a_index), int(b_index), int(c_index), int(d_index), int(e_index), int(f_index)]
-            else:
-                pass                    
+        # Define Neighbour_index and make sure that only these spaces are used for future moves   
+        if Last_Turn_Count == 1:
+            Neighbour_index = [int(a_index), int(b_index), int(c_index), int(d_index), int(e_index), int(f_index)]
+        else:
+            pass                    
                     
         Player_Markers = int(These_Scores[str('Markers_P' + str(Player))].loc[0])
+        
+        Update_FE()
                 
        # Req_Markers = Req_Markers - 1
             
@@ -646,8 +686,8 @@ def Take_Turn():
         pass
     else:
         # Reset Last_Turn and Last_Turn_Count == 0
-        Last_Turn == 0
-        Last_Turn_Count == 0
+        Last_Turn = 0
+        Last_Turn_Count = 0
         
         # Step 5, Search for and remove enclosed areas, starts with opposing player no.
         # Maybe this could be a seperate function
@@ -804,12 +844,19 @@ def Take_Turn():
         y = str(These_Scores['Markers_P2'].loc[0])
     
     
-    
     Game_Notes = (Game_Notes + 'Turn ' + str(Turn_No) + ': \n     ' +
                   Color + ' played ' + '(' + str(Place_x) + ',' + str(Place_y) + '),' + '\n     ' +
                   'Placing '+ x + ' markers,' + '\n     ' +
                   Color + ' has ' + y + ' markers left,' + '\n     ' +
-                  'Score: ' + 'White = ' + str(These_Scores['InPlay_P1'].loc[0]) + ', Black = ' + str(These_Scores['InPlay_P2'].loc[0]) + ',\n \n')
+                  'Score: ' + 'White = ' + str(int(These_Scores['InPlay_P1'].loc[0])) + ', Black = ' + str(int(These_Scores['InPlay_P2'].loc[0])) + ',\n \n')
+    
+    if Player_Markers > 0 and Req_Markers > Player_Markers:
+        if Player == 2:
+            Game_Notes = Game_Notes + 'Black player its still your turn. \n \n'
+        elif Player == 1:
+            Game_Notes = Game_Notes + 'White player its still your turn. \n \n'
+        else:
+            Last_Turn_Count = 0    
     
     # if not a last go then swap player
     if Last_Turn == 0:
@@ -871,7 +918,9 @@ def Take_Turn():
             Game_Notes = Game_Notes + 'End of game, A Draw? How did that happen? \n \n'
         else:
             Game_Notes = Game_Notes + 'End of game, congratulations ' + str(winner) + ', you acheived ' + str(outcome) + '\n \n'
-       
+    
+    # Remove 'Working on it...'
+    Game_Notes = Game_Notes.replace("Working on it...", "")
     Update_FE()
     
 #%% Input co-ordinates, checks that inputted co-ordinates match the entry requirements.
@@ -886,7 +935,8 @@ def Input():
     global lookup_x
     global lookup_y
     global Game_Notes
-       
+    
+    
     # The entry requirements are that:
     # 1. Integers between 0 and 22 must be used.
     # 2. They must be seperated by a single comma.
@@ -914,7 +964,10 @@ def Input():
     else:
         entry1.delete(0, END)
         
-    # 2. Check to see if Place_x and Place_y are integers between -10 and 10
+    Game_Notes = Game_Notes + 'Working on it...'
+    Update_FE()
+        
+    # 2. Check to see if Place_x and Place_y are integers between 0 and 22
     if (0 <= Place_x <= 22) and (0 <= Place_y <= 22):
         Pass = Pass + 1
     else:
@@ -959,6 +1012,11 @@ def Go_To():
     global Turn_No
     global Player
     global Game_Notes
+    global Opponent
+    global Last_Turn_Count
+    global Last_Turn
+       
+    # Issue with last go in that, the player swap is fucking things up.
                    
     Turn = str(entry2.get())
     
@@ -968,7 +1026,7 @@ def Go_To():
     Pass = 0
     
     # 1. Check that there is text in input2 and that it is an integer between 1 and 246 incl.
-    if (int(Turn) >= 1) and (int(Turn) <= 246):
+    if (int(Turn) >= 0) and (int(Turn) <= 246):
         entry2.delete(0, END)
         Pass = Pass + 1
     else:
@@ -977,26 +1035,41 @@ def Go_To():
     # Check to see if all stages passed, if so contunue, if not pass
     if Pass == 1:
         Turn_No = int(Turn)
-        This_Turn = pd.read_csv ('Board_' + str(Turn_No) + '.csv', header = 0) 
-        These_Scores = pd.read_csv ('Scores_' + str(Turn_No) + '.csv', header = 0)    
+        # This_Turn = pd.read_csv('Board_' + str(Turn_No) + '.csv', header = 0)
+        This_Turn = pd.read_csv('./Game data/Boards/Board_' + str(Turn_No) + '.csv', header = 0)
+        # These_Scores = pd.read_csv('Scores_' + str(Turn_No) + '.csv', header = 0)
+        These_Scores = pd.read_csv('./Game data/Scores/Scores_' + str(Turn_No) + '.csv', header = 0)
         Markers_P1 = int(These_Scores['Markers_P1'].loc[0])
         Markers_P2 = int(These_Scores['Markers_P2'].loc[0])
         Player = int(These_Scores['Player_No'].loc[0])
+        Last_Turn_Count = int(These_Scores['Last_Turn_Count'].loc[0])
+        Last_Turn = int(These_Scores['Last turn'].loc[0])
        
-        # Flip player to allow opponent to play 
-        if Player == 1:
-            Player = 2
-            Color = 'White'
-            
-        elif Player == 2:
-           Player = 1
-           Color = 'Black'
-           
+        # If not last go flip player to allow opponent to play 
+        if Last_Turn == 0:
+            if Player == 1:
+                Player = 2
+                Opponent = 1
+            elif Player == 2:
+               Player = 1
+               Opponent = 2 
+            else:
+                pass
         else:
             pass
         
-        Game_Notes = Game_Notes + ' Went to turn number: ' + Turn + '.\n \n'
-    
+        Game_Notes = Game_Notes + 'Went to turn number ' + Turn + '.\n \n'
+        
+        if Last_Turn == 1:
+            if Player == 1:
+                Game_Notes = Game_Notes + 'White player its still your turn.\n \n'
+            elif Player == 2:
+                  Game_Notes = Game_Notes + 'Black player its still your turn.\n \n'
+            else:
+                pass
+        else:
+            pass
+
         Update_FE()
         
         Player_Check()
@@ -1009,8 +1082,6 @@ def Go_To():
         Update_FE()
     
     Show_Board()
-    
-    
 
 #%% Create and show board to players  
 Calculate_Scores()
@@ -1028,28 +1099,32 @@ canwidth = imgsize
 canheight = int(math.floor(height * (1/6)))
 butheight = canheight / 5
 fontsize = int(math.floor(butheight * 0.5))
+butwidth = int(math.floor(canwidth / 6.5))
 
 # Setup all the front end features
-canvas1 = tk.Canvas(root, width = canwidth, height = canheight)
+canvas1 = tk.Canvas(root, width = canwidth - butheight, height = canheight)
 canvas2 = tk.Canvas(root, width = canwidth - butheight, height = height - butheight)
 BTT = tk.Button(canvas1, text = 'Take Turn', font = ('Arial', fontsize), command = Input, bg='brown',fg='white')
 BGB = tk.Button(canvas1, text = 'Go To', font = ('Arial', fontsize), command = Go_To, bg='brown',fg='white')
 entry1 = tk.Entry(canvas1, font = ('Arial', fontsize))
 entry2 = tk.Entry(canvas1, font = ('Arial', fontsize))
-text1 = canvas1.create_text((canwidth / 2) - 60, butheight + (butheight / 2), anchor = "e")
-text2 = canvas1.create_text((canwidth / 2) - 60, butheight * 3 + (butheight / 2), anchor = "e")
+text1 = canvas1.create_text((canwidth / 2) - (butwidth * 0.6), butheight + (butheight / 2), anchor = "e")
+text2 = canvas1.create_text((canwidth / 2) - (butwidth * 0.6), butheight * 3 + (butheight / 2), anchor = "e")
 side_pannel = tk.Text(canvas2, font = ('Arial', fontsize), wrap=WORD)
 side_pannel.insert(tk.END, Game_Notes)
 
-canvas1.place(x = 0, y = 0)
+canvas1.place(x = butheight, y = 0)
 canvas2.place(x = canwidth, y = 0)
-BTT.place(height = butheight, width = 100, x = (canwidth / 2) + 70, y = butheight)
-BGB.place(height = butheight, width = 100, x = (canwidth / 2) + 70, y = butheight * 3)
-entry1.place(height = butheight, width = 100, x = (canwidth / 2) - 50, y = butheight)
-entry2.place(height = butheight, width = 100, x = (canwidth / 2) - 50, y = butheight * 3)
+BTT.place(height = butheight, width = butwidth, x = (canwidth / 2) + (butwidth * 0.7), y = butheight)
+BGB.place(height = butheight, width = butwidth, x = (canwidth / 2) + (butwidth * 0.7), y = butheight * 3)
+entry1.place(height = butheight, width = butwidth, x = (canwidth / 2) - (butwidth * 0.5), y = butheight)
+entry2.place(height = butheight, width = butwidth, x = (canwidth / 2) - (butwidth * 0.5), y = butheight * 3)
 canvas1.itemconfig(text1, text="Enter co-ordinates here (x,y):", font = ('Arial', fontsize))
 canvas1.itemconfig(text2, text="Enter turn number here:", font = ('Arial', fontsize))
-side_pannel.place(x=butheight, y=butheight, relwidth = 0.95, relheight = 0.95)
+side_pannel.place(x=butheight, y=butheight, relwidth = 1, relheight = 1)
+entry1.bind('<Return>', lambda x: Input ())
+entry1.focus()
+entry2.bind('<Return>', lambda x: Go_To ())
 
 #%% Update_FE()
 def Update_FE():
@@ -1078,6 +1153,7 @@ def Update_FE():
     canheight = int(math.floor(height * (1/6)))
     butheight = canheight / 5
     fontsize = int(math.floor(butheight * 0.5))
+    butwidth = int(math.floor(canwidth / 6.5))
     
     # Destroy and re-set up front end features
     canvas1.destroy()
@@ -1094,24 +1170,25 @@ def Update_FE():
     BGB = tk.Button(canvas1, text = 'Go To', font = ('Arial', fontsize), command = Go_To, bg='brown',fg='white')
     entry1 = tk.Entry(canvas1, font = ('Arial', fontsize))
     entry2 = tk.Entry(canvas1, font = ('Arial', fontsize))
-    text1 = canvas1.create_text((canwidth / 2) - 60, butheight + (butheight / 2), anchor = "e")
-    text2 = canvas1.create_text((canwidth / 2) - 60, butheight * 3 + (butheight / 2), anchor = "e")
+    text1 = canvas1.create_text((canwidth / 2) - (butwidth * 0.6), butheight + (butheight / 2), anchor = "e")
+    text2 = canvas1.create_text((canwidth / 2) - (butwidth * 0.6), butheight * 3 + (butheight / 2), anchor = "e")
     side_pannel = tk.Text(canvas2, font = ('Arial', fontsize), wrap=WORD)
     side_pannel.insert(tk.END, Game_Notes)
     
-    canvas1.place(x = width / 2 - canwidth, y = 0)
-    canvas2.place(x = width / 2, y = 0)
-    BTT.place(height = butheight, width = 100, x = (canwidth / 2) + 70, y = butheight)
-    BGB.place(height = butheight, width = 100, x = (canwidth / 2) + 70, y = butheight * 3)
-    entry1.place(height = butheight, width = 100, x = (canwidth / 2) - 50, y = butheight)
-    entry2.place(height = butheight, width = 100, x = (canwidth / 2) - 50, y = butheight * 3)
+    canvas1.place(x = butheight, y = 0)
+    canvas2.place(x = canwidth, y = 0)
+    BTT.place(height = butheight, width = butwidth, x = (canwidth / 2) + (butwidth * 0.7), y = butheight)
+    BGB.place(height = butheight, width = butwidth, x = (canwidth / 2) + (butwidth * 0.7), y = butheight * 3)
+    entry1.place(height = butheight, width = butwidth, x = (canwidth / 2) - (butwidth * 0.5), y = butheight)
+    entry2.place(height = butheight, width = butwidth, x = (canwidth / 2) - (butwidth * 0.5), y = butheight * 3)
     canvas1.itemconfig(text1, text="Enter co-ordinates here (x,y):", font = ('Arial', fontsize))
     canvas1.itemconfig(text2, text="Enter turn number here:", font = ('Arial', fontsize))
-    side_pannel.place(x=butheight, y=butheight, relwidth = 0.95, relheight = 0.95)
+    side_pannel.place(x=butheight, y=butheight, relwidth = 1, relheight = 1)
     side_pannel.see("end")
+    entry1.bind('<Return>', lambda x: Input ())
+    entry1.focus()
+    entry2.bind('<Return>', lambda x: Go_To ())
     
-    
-
 #%%
 # No idea what this does but its  important.
 root.mainloop()    
