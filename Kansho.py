@@ -34,6 +34,7 @@ Date          Version     Author          Description
                                           Allowed entry using ENTER key.
 14/07/2022    v2.7        Pete Sanders    Updated front end, changed so that nothing saves to file,
                                           used pickle to store data locally.
+16/07/2022    v2.8        Pete Sanders    Another go at trying to get the damned exe to work!.
                                         
 RECOMMENDED FUTURE IMPROVEMENTS:
     Make one neighboured tokens and enclosed areas loops more efficient.
@@ -43,7 +44,6 @@ RECOMMENDED FUTURE IMPROVEMENTS:
     Allow entering of location from clicking on board.
     
 Bugs:
-
 
 """
 #%% Import nessessary modules
@@ -83,8 +83,8 @@ Game_Notes = """Instructions:
 Game_Notes =  Game_Notes + 'Have fun! \n \n'
 
 # Define initial condtions
-Markers_P1 = 123
-Markers_P2 = 123
+Markers_P1 = 12
+Markers_P2 = 12
 Used_P1 = 0
 Used_P2 = 0
 P1_Used = 0
@@ -245,7 +245,7 @@ These_Scores.to_csv(globals()['Scores_0' + '_io'])
 # This has to happen before Show_Board() is called because Show_Board() uses the panel.
 # Assignes some function within tk to root
 root = tk.Tk()
-root.title('Kansho')
+root.title('Kansho v2.7')
 root.geometry('875x500')
 
 panel = Label(root)
@@ -367,12 +367,12 @@ def Show_Board():
     else:
         plt.text(11, 19.5, "Black, it's your go", fontsize=18, verticalalignment='center', horizontalalignment='center', bbox=props)
     
-    plt.text(0.5, 1, 'White Score = ' + str("%.0f" % float(These_Scores['InPlay_P1'].loc[0])) +
-                        '\n' + 'Black Score = ' + str("%.0f" % float(These_Scores['InPlay_P2'].loc[0])),
+    plt.text(0.5, 1, 'White Score = ' + str("%.0f" % float(These_Scores.loc[0,'InPlay_P1'])) +
+                        '\n' + 'Black Score = ' + str("%.0f" % float(These_Scores.loc[0,'InPlay_P2'])),
                         fontsize=18, verticalalignment='center', bbox=props)
     
-    plt.text(21.5, 1, 'White Left = ' + str("%.0f" % float(These_Scores['Markers_P1'].loc[0])) +
-                          '\n' + 'Black Left = ' + str("%.0f" % float(These_Scores['Markers_P2'].loc[0])),
+    plt.text(21.5, 1, 'White Left = ' + str("%.0f" % float(These_Scores.loc[0,'Markers_P1'])) +
+                          '\n' + 'Black Left = ' + str("%.0f" % float(These_Scores.loc[0,'Markers_P2'])),
                           fontsize=18, verticalalignment='center', horizontalalignment='right', bbox=props)
     
     plt.text(11, 10, 'Turn' + '\n' + str("%.0f" % float(Turn_No)), fontsize=18, verticalalignment='center', horizontalalignment='center', bbox=props)
@@ -419,32 +419,32 @@ def Calculate_Scores():
         Scores = pd.read_csv(globals()['Scores_' + str(Turn_No - 1) + '_io'], header = 0)
 
     # Define scores for this turn based on 'Scores' and current markers used    
-    These_Scores['InPlay_P1'].loc[0] = This_Turn[This_Turn.Value == 1].sum().loc['Value']
-    These_Scores['InPlay_P2'].loc[0] = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
+    These_Scores.loc[0,'InPlay_P1'] = This_Turn[This_Turn.Value == 1].sum().loc['Value']
+    These_Scores.loc[0,'InPlay_P2'] = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
     
     if Last_Turn == 1 and Player == 2:
         pass
     else:
-        These_Scores['Markers_P1'].loc[0] = Scores['Markers_P1'].loc[0] - P1_Used
+        These_Scores.loc[0,'Markers_P1'] = Scores.loc[0,'Markers_P1'] - P1_Used
         
     if Last_Turn == 1 and Player == 1:
         pass
     else:
-        These_Scores['Markers_P2'].loc[0] = Scores['Markers_P2'].loc[0] - P2_Used
+        These_Scores.loc[0,'Markers_P2'] = Scores.loc[0,'Markers_P2'] - P2_Used
         
     # Player
-    These_Scores['Player_No'].loc[0] = Player
+    These_Scores.loc[0,'Player_No'] = Player
 
     if Player == 1 :
-        These_Scores['Player'].loc[0] = 'White'
+        These_Scores.loc[0,'Player'] = 'White'
     elif Player == 2:
-        These_Scores['Player'].loc[0] = 'Black'  
+        These_Scores.loc[0,'Player'] = 'Black'  
     else:
         pass
     
     # Last turn
-    These_Scores['Last turn'].loc[0] = Last_Turn
-    These_Scores['Last_Turn_Count'].loc[0] = Last_Turn_Count
+    These_Scores.loc[0,'Last turn'] = Last_Turn
+    These_Scores.loc[0,'Last_Turn_Count'] = Last_Turn_Count
 
         
 #%% Print scores and board
@@ -540,12 +540,12 @@ def Define_Neighbour_States():
     global Neighbour_vals
     global This_Turn
        
-    a_state = int(This_Turn['Value'].loc[int(a_index)])
-    b_state = int(This_Turn['Value'].loc[int(b_index)])
-    c_state = int(This_Turn['Value'].loc[int(c_index)])
-    d_state = int(This_Turn['Value'].loc[int(d_index)])
-    e_state = int(This_Turn['Value'].loc[int(e_index)])
-    f_state = int(This_Turn['Value'].loc[int(f_index)])
+    a_state = int(This_Turn.loc[int(a_index),'Value'])
+    b_state = int(This_Turn.loc[int(b_index),'Value'])
+    c_state = int(This_Turn.loc[int(c_index),'Value'])
+    d_state = int(This_Turn.loc[int(d_index),'Value'])
+    e_state = int(This_Turn.loc[int(e_index),'Value'])
+    f_state = int(This_Turn.loc[int(f_index),'Value'])
     
 # Create a list of neighbour vals to be interrogated later
     Neighbour_vals = [int(a_state), int(b_state), int(c_state),
@@ -613,7 +613,7 @@ def Take_Turn():
     Place_index = Board_0[Board_0['x,y']==str(str(Place_x) + ',' + str(Place_y))].index.values
     
     # Define new board state as new df (allowing for backtracking)
-    This_Turn['Value'].loc[Place_index] = int(Player)
+    This_Turn.loc[Place_index,'Value'] = int(Player)
     
     if int(Player) == 1:
         P1_Used = P1_Used + 1
@@ -640,7 +640,7 @@ def Take_Turn():
     else:
         Req_Markers = sum(1 for item in Neighbour_vals if item != 3) - sum(1 for item in Neighbour_vals if item == Player)
         
-    Player_Markers = int(These_Scores[str('Markers_P' + str(Player))].loc[0])
+    Player_Markers = int(These_Scores.loc[0,str('Markers_P' + str(Player))])
      
     # If so then fill neighbours
     if Req_Markers <= Player_Markers:
@@ -650,13 +650,13 @@ def Take_Turn():
             
         while Neighbour_No <= 6:
             if variables['{}_state'.format(Neighbours[Neighbour_No])] == int(Player):
-                This_Turn['Value'].loc[variables['{}_index'.format(Neighbours[Neighbour_No])]] = int(Player)
+                This_Turn.loc[variables['{}_index'.format(Neighbours[Neighbour_No])],'Value'] = int(Player)
 
             elif variables['{}_state'.format(Neighbours[Neighbour_No])] == 3:
-                This_Turn['Value'].loc[variables['{}_index'.format(Neighbours[Neighbour_No])]] = 3 
+                This_Turn.loc[variables['{}_index'.format(Neighbours[Neighbour_No])],'Value'] = 3 
     
             else:
-                This_Turn['Value'].loc[variables['{}_index'.format(Neighbours[Neighbour_No])]] = int(Player)
+                This_Turn.loc[variables['{}_index'.format(Neighbours[Neighbour_No])],'Value'] = int(Player)
                 if int(Player) == 1:
                     P1_Used = P1_Used + 1
                 else:
@@ -692,7 +692,7 @@ def Take_Turn():
         else:
             pass                    
                     
-        Player_Markers = int(These_Scores[str('Markers_P' + str(Player))].loc[0])
+        Player_Markers = int(These_Scores.loc[0,str('Markers_P' + str(Player))])
         
         Update_FE()
                 
@@ -728,9 +728,9 @@ def Take_Turn():
             
             # Setup loop to run through each 'row' of board
             while This_Turn_index <= 528:
-                if int(This_Turn['Value'].loc[int(This_Turn_index)]) == int(Opponent):
-                    lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
-                    lookup_y = This_Turn['y'].loc[int(This_Turn_index)]
+                if int(This_Turn.loc[int(This_Turn_index),'Value']) == int(Opponent):
+                    lookup_x = This_Turn.loc[int(This_Turn_index),'x']
+                    lookup_y = This_Turn.loc[int(This_Turn_index),'y']
     
                     Define_Neighbour_Index()
                         
@@ -738,11 +738,11 @@ def Take_Turn():
     
                     # Mark anything with "0" neighbours as "4"
                     if sum(1 for item in Neighbour_vals if item==(0)) > 0:
-                        This_Turn['Value'].loc[This_Turn_index] = 4
+                        This_Turn.loc[This_Turn_index,'Value'] = 4
     
                     # Mark anything with "4" neighbours as "4"
                     if sum(1 for item in Neighbour_vals if item==(4)) > 0:
-                        This_Turn['Value'].loc[This_Turn_index] = 4
+                        This_Turn.loc[This_Turn_index,'Value'] = 4
                 
                     This_Turn_index = This_Turn_index + 1
                         
@@ -765,10 +765,10 @@ def Take_Turn():
         while No_Rotations <= (InPlay_P1 + InPlay_P2):        
             This_Turn_index = 0
             while This_Turn_index <= 528:
-                if int(This_Turn['Value'].loc[int(This_Turn_index)]) == int(Player):
+                if int(This_Turn.loc[int(This_Turn_index),'Value']) == int(Player):
     
-                    lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
-                    lookup_y = This_Turn['y'].loc[int(This_Turn_index)]
+                    lookup_x = This_Turn.loc[int(This_Turn_index),'x']
+                    lookup_y = This_Turn.loc[int(This_Turn_index),'y']
                         
                     Define_Neighbour_Index()
                         
@@ -776,11 +776,11 @@ def Take_Turn():
                         
                     # Mark anything with "0" neighbours as "4"
                     if sum(1 for item in Neighbour_vals if item==(0)) > 0:
-                        This_Turn['Value'].loc[This_Turn_index] = 4
+                        This_Turn.loc[This_Turn_index,'Value'] = 4
     
                     # Mark anything with "4" neighbours as "4"
                     if sum(1 for item in Neighbour_vals if item==(4)) > 0:
-                        This_Turn['Value'].loc[This_Turn_index] = 4
+                        This_Turn.loc[This_Turn_index,'Value'] = 4
                 
                     This_Turn_index = This_Turn_index + 1
                         
@@ -807,28 +807,28 @@ def Take_Turn():
         while No_Rotations <= max(InPlay_P1,InPlay_P2):
             This_Turn_index = 0
             while This_Turn_index <= 528:
-                if int(This_Turn['Value'].loc[int(This_Turn_index)]) == 1:
-                    lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
-                    lookup_y = This_Turn['y'].loc[int(This_Turn_index)]
+                if int(This_Turn.loc[int(This_Turn_index),'Value']) == 1:
+                    lookup_x = This_Turn.loc[int(This_Turn_index),'x']
+                    lookup_y = This_Turn.loc[int(This_Turn_index),'y']
             
                     Define_Neighbour_Index()
                     Define_Neighbour_States()
                     
                     if sum(1 for item in Neighbour_vals if item==(1)) <= 1:
-                        This_Turn['Value'].loc[This_Turn_index] = 0
+                        This_Turn.loc[This_Turn_index,'Value'] = 0
                 
                     else:
                         pass
         
-                elif int(This_Turn['Value'].loc[int(This_Turn_index)]) == 2:
-                    lookup_x = This_Turn['x'].loc[int(This_Turn_index)]
-                    lookup_y = This_Turn['y'].loc[int(This_Turn_index)] 
+                elif int(This_Turn.loc[int(This_Turn_index),'Value']) == 2:
+                    lookup_x = This_Turn.loc[int(This_Turn_index),'x']
+                    lookup_y = This_Turn.loc[int(This_Turn_index),'y'] 
     
                     Define_Neighbour_Index()
                     Define_Neighbour_States()
            
                     if sum(1 for item in Neighbour_vals if item==(2)) <= 1:
-                        This_Turn['Value'].loc[This_Turn_index] = 0
+                        This_Turn.loc[This_Turn_index,'Value'] = 0
                         
                     else:
                         pass
@@ -849,8 +849,8 @@ def Take_Turn():
     # End the go and the formation of a new board
     Calculate_Scores()
     
-    Markers_P1 = int(These_Scores['Markers_P1'].loc[0])
-    Markers_P2 = int(These_Scores['Markers_P2'].loc[0])
+    Markers_P1 = int(These_Scores.loc[0,'Markers_P1'])
+    Markers_P2 = int(These_Scores.loc[0,'Markers_P2'])
     
     Save_Scores()
     Save_Board()
@@ -863,19 +863,19 @@ def Take_Turn():
     if Player == 1:
         Color = 'White'
         x = str(P1_Used)
-        y = str(These_Scores['Markers_P1'].loc[0])
+        y = str(These_Scores.loc[0,'Markers_P1'])
     
     else:
         Color = 'Black'
         x = str(P2_Used)
-        y = str(These_Scores['Markers_P2'].loc[0])
+        y = str(These_Scores.loc[0,'Markers_P2'])
     
     
     Game_Notes = (Game_Notes + 'Turn ' + str(Turn_No) + ': \n     ' +
                   Color + ' played ' + '(' + str(Place_x) + ',' + str(Place_y) + '),' + '\n     ' +
                   'Placing '+ x + ' markers,' + '\n     ' +
                   Color + ' has ' + y + ' markers left,' + '\n     ' +
-                  'Score: ' + 'White = ' + str(int(These_Scores['InPlay_P1'].loc[0])) + ', Black = ' + str(int(These_Scores['InPlay_P2'].loc[0])) + ',\n \n')
+                  'Score: ' + 'White = ' + str(int(These_Scores.loc[0,'InPlay_P1'])) + ', Black = ' + str(int(These_Scores.loc[0,'InPlay_P2'])) + ',\n \n')
     
     if Player_Markers > 0 and Req_Markers > Player_Markers:
         if Player == 2:
@@ -912,8 +912,8 @@ def Take_Turn():
     # Sort out endgame
     if Markers_P1 <= 0 and Markers_P2 <= 0:
         # End Game and display winner!
-        InPlay_P1 = These_Scores['InPlay_P1'].loc[0]
-        InPlay_P2 = These_Scores['InPlay_P2'].loc[0]
+        InPlay_P1 = These_Scores.loc[0,'InPlay_P1']
+        InPlay_P2 = These_Scores.loc[0,'InPlay_P2']
         
         # Calculate margin percentage
         Margin_Of_Victory = ((InPlay_P1 - InPlay_P2)**2)**(0.5)
@@ -935,7 +935,7 @@ def Take_Turn():
             pass    
             
         # Define winner
-        if These_Scores['InPlay_P1'].loc[0] > These_Scores['InPlay_P2'].loc[0]:
+        if These_Scores.loc[0,'InPlay_P1'] > These_Scores.loc[0,'InPlay_P2']:
             winner = 'White'
         else:
             winner = 'Black'
@@ -1009,7 +1009,7 @@ def Input():
     # 4. Check to see if required space is occupied
     # Find the row relating to the place location
     Place_index = Board_0[Board_0['x,y']==str(str(Place_x) + ',' + str(Place_y))].index.values
-    Place_State = int(This_Turn['Value'].loc[Place_index])
+    Place_State = int(This_Turn.loc[Place_index,'Value'])
     
     if Last_Turn == 0 and Place_State > 0:
         pass
@@ -1072,11 +1072,11 @@ def Go_To():
         This_Turn = pd.read_csv(globals()['Board_' + str(Turn_No) + '_io'], header = 0)
         These_Scores = pd.read_csv(globals()['Scores_' + str(Turn_No) + '_io'], header = 0)   
 
-        Markers_P1 = int(These_Scores['Markers_P1'].loc[0])
-        Markers_P2 = int(These_Scores['Markers_P2'].loc[0])
-        Player = int(These_Scores['Player_No'].loc[0])
-        Last_Turn_Count = int(These_Scores['Last_Turn_Count'].loc[0])
-        Last_Turn = int(These_Scores['Last turn'].loc[0])
+        Markers_P1 = int(These_Scores.loc[0,'Markers_P1'])
+        Markers_P2 = int(These_Scores.loc[0,'Markers_P2'])
+        Player = int(These_Scores.loc[0,'Player_No'])
+        Last_Turn_Count = int(These_Scores.loc[0,'Last_Turn_Count'])
+        Last_Turn = int(These_Scores.loc[0,'Last turn'])
        
         # If not last go flip player to allow opponent to play 
         if Last_Turn == 0:
@@ -1187,7 +1187,6 @@ def Update_FE():
     Setup_FE_Features()
     
     Show_Board()
-    
-#%%
-# No idea what this does but its  important.
+
+Update_FE()
 root.mainloop()    
