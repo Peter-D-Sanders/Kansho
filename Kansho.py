@@ -83,8 +83,8 @@ Game_Notes = """Instructions:
 Game_Notes =  Game_Notes + 'Have fun! \n \n'
 
 # Define initial condtions
-Markers_P1 = 12
-Markers_P2 = 12
+Markers_P1 = 123
+Markers_P2 = 123
 Used_P1 = 0
 Used_P2 = 0
 P1_Used = 0
