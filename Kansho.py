@@ -35,6 +35,7 @@ Date          Version     Author          Description
 14/07/2022    v2.7        Pete Sanders    Updated front end, changed so that nothing saves to file,
                                           used pickle to store data locally.
 16/07/2022    v2.8        Pete Sanders    Another go at trying to get the damned exe to work!.
+19/07/2022    v2.9        Pete Sanders    Spme efficiencies in coding made.
                                         
 RECOMMENDED FUTURE IMPROVEMENTS:
     Make one neighboured tokens and enclosed areas loops more efficient.
@@ -56,6 +57,15 @@ import math
 import io
 from PIL import Image
 import numpy as np
+
+#%% Setu initial front end stuff
+root = tk.Tk()
+root.title('Kansho v2.7')
+root.geometry('875x500')
+
+panel = Label(root)
+panel.pack_propagate(0)
+panel.pack(side = "left", fill = "both", expand = 1)
 
 #%% 1. Print instructions, define initial conditions
 global Turn_No
@@ -83,8 +93,8 @@ Game_Notes = """Instructions:
 Game_Notes =  Game_Notes + 'Have fun! \n \n'
 
 # Define initial condtions
-Markers_P1 = 123
-Markers_P2 = 123
+Markers_P1 = 12
+Markers_P2 = 12
 Used_P1 = 0
 Used_P2 = 0
 P1_Used = 0
@@ -96,7 +106,7 @@ Opponent = 2
 Last_Turn = 0
 Last_Turn_Count = 0
 
-#%%  2. Define board and scores
+# 2. Define board and scores
 Board_0_data = {'x': [22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,
                       21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,
                       20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,
@@ -241,17 +251,7 @@ Game_Notes = (Game_Notes + 'Turn 0: \n     ' +
 globals()['Scores_0' + '_io'] = io.StringIO()
 These_Scores.to_csv(globals()['Scores_0' + '_io'])
 
-#%% Step 3, Setup the initial part of the front end
-# This has to happen before Show_Board() is called because Show_Board() uses the panel.
-# Assignes some function within tk to root
-root = tk.Tk()
-root.title('Kansho v2.7')
-root.geometry('875x500')
-
-panel = Label(root)
-panel.pack_propagate(0)
-panel.pack(side = "left", fill = "both", expand = 1)
-
+#%% Calculate_FE_sizes
 def Calculate_FE_sizes():
     global height
     global width
@@ -394,7 +394,6 @@ def Show_Board():
     img = ImageTk.PhotoImage(img)
     panel = Label(root, image = img)
     panel.place(width = canvas_width, height = canvas_width, x = (width / 2) - canvas_width, y = canvas1_height)
-    
 
 #%% Calculate score
 def Calculate_Scores():
@@ -445,7 +444,6 @@ def Calculate_Scores():
     # Last turn
     These_Scores.loc[0,'Last turn'] = Last_Turn
     These_Scores.loc[0,'Last_Turn_Count'] = Last_Turn_Count
-
         
 #%% Print scores and board
 def Save_Scores():
@@ -508,7 +506,6 @@ def Define_Neighbour_Index():
         if int(lookup_x) % 2 != 0:
             e_index = Place_index - 22
             f_index = Place_index + 24
-       
         else:
             e_index = Place_index + 22
             f_index = Place_index - 24
@@ -591,13 +588,12 @@ def Take_Turn():
     global Opponent
     global Game_Notes
     
-    # Increase turn number and reset numbers used
+    # Increase turn number and reset markers used
     Turn_No = Turn_No + 1
-    
     P1_Used = 0
     P2_Used = 0
 
-    Calculate_Scores()
+    # Calculate_Scores()
     
     # Define this turn board and scores state
     variables = globals()
@@ -622,8 +618,8 @@ def Take_Turn():
 
     Calculate_Scores()
     Save_Scores()
-    Save_Board()
-    Show_Board()
+    # Save_Board()
+    # Show_Board()
        
     # Step 4, Calculate markers required for go, and fill neighbours
     # Rename Place_x and Place_y as lookups to work with Define_Neighbour_Index
@@ -664,10 +660,10 @@ def Take_Turn():
     
             Neighbour_No = Neighbour_No + 1
                 
-        Calculate_Scores()
-        Save_Scores()
-        Save_Board()
-        Show_Board()
+        # Calculate_Scores()
+        # Save_Scores()
+        # Save_Board()
+        # Show_Board()
         
     # If not then perform last go procedures
     elif Req_Markers > Player_Markers:
@@ -695,19 +691,19 @@ def Take_Turn():
         Player_Markers = int(These_Scores.loc[0,str('Markers_P' + str(Player))])
         
         Update_FE()
-                
-       # Req_Markers = Req_Markers - 1
             
-        Calculate_Scores()
-        Save_Scores()
-        Save_Board()
-        Show_Board()
+       # Calculate_Scores()
+       # Save_Scores()
+       # Save_Board()
+       # Show_Board()
             
-    else:
-        Calculate_Scores()
-        Save_Scores()
-        Save_Board()
-        Show_Board()
+   # else:
+        # Update_FE()
+        
+        # Calculate_Scores()
+        # Save_Scores()
+        # Save_Board()
+        # Show_Board()
                                            
     if Last_Turn == 1 and ((Player == 1 and Markers_P1 > 0) or (Player == 2 and Markers_P2 > 0)):
         pass
@@ -733,7 +729,6 @@ def Take_Turn():
                     lookup_y = This_Turn.loc[int(This_Turn_index),'y']
     
                     Define_Neighbour_Index()
-                        
                     Define_Neighbour_States() 
     
                     # Mark anything with "0" neighbours as "4"
@@ -771,7 +766,6 @@ def Take_Turn():
                     lookup_y = This_Turn.loc[int(This_Turn_index),'y']
                         
                     Define_Neighbour_Index()
-                        
                     Define_Neighbour_States()
                         
                     # Mark anything with "0" neighbours as "4"
@@ -828,11 +822,9 @@ def Take_Turn():
                     Define_Neighbour_States()
            
                     if sum(1 for item in Neighbour_vals if item==(2)) <= 1:
-                        This_Turn.loc[This_Turn_index,'Value'] = 0
-                        
+                        This_Turn.loc[This_Turn_index,'Value'] = 0  
                     else:
                         pass
-                
                 else:
                     pass
                     
@@ -843,7 +835,6 @@ def Take_Turn():
             InPlay_P2 = int(This_Turn[This_Turn.Value == 2].sum().loc['Value'] / 2)
                         
         Calculate_Scores()
-            
         Show_Board()
 
     # End the go and the formation of a new board
@@ -853,11 +844,11 @@ def Take_Turn():
     Markers_P2 = int(These_Scores.loc[0,'Markers_P2'])
     
     Save_Scores()
-    Save_Board()
+    # Save_Board()
         
     Total_Markers = Markers_P1 + Markers_P2
     
-    Show_Board()
+    # Show_Board()
     
     # Update the game notes
     if Player == 1:
@@ -869,7 +860,6 @@ def Take_Turn():
         Color = 'Black'
         x = str(P2_Used)
         y = str(These_Scores.loc[0,'Markers_P2'])
-    
     
     Game_Notes = (Game_Notes + 'Turn ' + str(Turn_No) + ': \n     ' +
                   Color + ' played ' + '(' + str(Place_x) + ',' + str(Place_y) + '),' + '\n     ' +
@@ -889,8 +879,8 @@ def Take_Turn():
     if Last_Turn == 0:
         Calculate_Scores()
         Save_Scores()
-        Save_Board()
-        Show_Board()
+        # Save_Board()
+        # Show_Board()
         
         #Swap player
         if Player == 1 and Opponent == 2:
@@ -907,6 +897,7 @@ def Take_Turn():
     else:
         pass    
     
+    Save_Board()
     Show_Board()
     
     # Sort out endgame
